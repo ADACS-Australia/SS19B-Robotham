@@ -1,0 +1,5 @@
+install.packages('devtools', repos="https://CRAN.R-project.org")
+install.packages('profvis', repos="https://CRAN.R-project.org")
+library(devtools)
+install_github("asgr/magicaxis")
+install_github("asgr/ProFound")
