@@ -1,4 +1,10 @@
 # SS19B-Robotham
+
+Use R version 3.5.1 as a minimum
+
+First time install, build, and run
+----------------------------------
+
 On MacOS assuming R is already installed
 
 1.  Build straight from repo using: ./run_Build_from_scratch.sh
@@ -9,6 +15,15 @@ library(ProFound)
 image=readFITS(system.file("extdata", 'VIKING/mystery_VIKING_Z.fits', package="ProFound"))
 profound=profoundProFound(image, skycut=1.5, magzero=30, verbose=TRUE, plot=TRUE)
 ```
+
+On OzSTAR assuming R 3.5.1 is available as a module
+
+1.  module load r/3.5.1
+2.  From R run install.packages("devtools") and say you want a private library when it asks
+3.  From R run install.packages("BiocManager")
+4.  From R run BiocManager::install("EBImage")
+5.  ./run_Build_from_scratch.sh
+6.  ./run_example1_non_interactive.sh
              
 Building from cloned repo
 -------------------------
@@ -22,3 +37,4 @@ On MacOS assuming RStudio is already installed
 3.  If required, "Build/Configure Build Tools..." and under "Build Tools" select "Package" for "Project build tools" ...
 4.  Select "Use devtools package if available" and OK
 5.  To build select "Build/Clean and Rebuild"
+
