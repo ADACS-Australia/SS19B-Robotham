@@ -24,6 +24,26 @@ On OzSTAR assuming R 3.5.1 is available as a module
 4.  From R run BiocManager::install("EBImage")
 5.  ./run_Build_from_scratch.sh
 6.  ./run_example1_non_interactive.sh
+
+On Windows using R version 3.6.x:
+
+From R (RStudio) -
+
+1. install.packages("devtools")
+2. install.packages("provis")
+3. install.packages("akima")
+4. install.packages("imager")
+5. install.packages("BiocManager")
+6. BiocManager::install("EBIMage")
+7. library(devtools)
+8. install_github("asgr/magicaxis")
+9. install_github("asgr/Profound")
+
+To run an example (on windows):
+
+1.library(ProFound)
+2. image=readFITS(system.file("extdata", 'VIKING/mystery_VIKING_Z.fits', package="ProFound"))
+3. profound=profoundProFound(image, skycut=1.5, magzero=30, verbose=TRUE, plot=TRUE)
              
 Building from cloned repo
 -------------------------
