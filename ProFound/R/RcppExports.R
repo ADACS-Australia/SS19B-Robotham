@@ -9,6 +9,18 @@ subset_cpp_inplace <- function(image = 0L, scol = 1L, ecol = 1L, srow = 1L, erow
     invisible(.Call(`_ProFound_subset_cpp_inplace`, image, scol, ecol, srow, erow, coffset, roffset, oimage))
 }
 
+subset_cpp_inplaceI <- function(image = 0L, scol = 1L, ecol = 1L, srow = 1L, erow = 1L, coffset = 0L, roffset = 0L, oimage = 0L) {
+    invisible(.Call(`_ProFound_subset_cpp_inplaceI`, image, scol, ecol, srow, erow, coffset, roffset, oimage))
+}
+
+adacsFindSkyCellValuesC <- function(image, objects, mask, loc1, loc2, box1, box2, boxadd1, boxadd2, skypixmin, boxiters) {
+    .Call(`_ProFound_adacsFindSkyCellValuesC`, image, objects, mask, loc1, loc2, box1, box2, boxadd1, boxadd2, skypixmin, boxiters)
+}
+
+adacsFindSkyCellValuesBoxC <- function(image, objects, mask, loc1, loc2, box1, box2, boxadd1, boxadd2, skypixmin, boxiters) {
+    .Call(`_ProFound_adacsFindSkyCellValuesBoxC`, image, objects, mask, loc1, loc2, box1, box2, boxadd1, boxadd2, skypixmin, boxiters)
+}
+
 water_cpp <- function(image = 0L, nx = 1L, ny = 1L, abstol = 1, reltol = 0, cliptol = 1000000, ext = 1L, skycut = 0, pixcut = 1L, verbose = FALSE, Ncheck = 1000000L) {
     .Call(`_ProFound_water_cpp`, image, nx, ny, abstol, reltol, cliptol, ext, skycut, pixcut, verbose, Ncheck)
 }

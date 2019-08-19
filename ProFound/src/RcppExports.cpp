@@ -34,6 +34,65 @@ BEGIN_RCPP
     return R_NilValue;
 END_RCPP
 }
+// subset_cpp_inplaceI
+void subset_cpp_inplaceI(Rcpp::IntegerMatrix image, const int scol, const int ecol, const int srow, const int erow, const int coffset, const int roffset, Rcpp::LogicalMatrix oimage);
+RcppExport SEXP _ProFound_subset_cpp_inplaceI(SEXP imageSEXP, SEXP scolSEXP, SEXP ecolSEXP, SEXP srowSEXP, SEXP erowSEXP, SEXP coffsetSEXP, SEXP roffsetSEXP, SEXP oimageSEXP) {
+BEGIN_RCPP
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< Rcpp::IntegerMatrix >::type image(imageSEXP);
+    Rcpp::traits::input_parameter< const int >::type scol(scolSEXP);
+    Rcpp::traits::input_parameter< const int >::type ecol(ecolSEXP);
+    Rcpp::traits::input_parameter< const int >::type srow(srowSEXP);
+    Rcpp::traits::input_parameter< const int >::type erow(erowSEXP);
+    Rcpp::traits::input_parameter< const int >::type coffset(coffsetSEXP);
+    Rcpp::traits::input_parameter< const int >::type roffset(roffsetSEXP);
+    Rcpp::traits::input_parameter< Rcpp::LogicalMatrix >::type oimage(oimageSEXP);
+    subset_cpp_inplaceI(image, scol, ecol, srow, erow, coffset, roffset, oimage);
+    return R_NilValue;
+END_RCPP
+}
+// adacsFindSkyCellValuesC
+Rcpp::NumericVector adacsFindSkyCellValuesC(Rcpp::NumericMatrix image, Rcpp::Nullable<Rcpp::IntegerMatrix> objects, Rcpp::Nullable<Rcpp::IntegerMatrix> mask, const double loc1, const double loc2, const double box1, const double box2, const double boxadd1, const double boxadd2, const int skypixmin, const int boxiters);
+RcppExport SEXP _ProFound_adacsFindSkyCellValuesC(SEXP imageSEXP, SEXP objectsSEXP, SEXP maskSEXP, SEXP loc1SEXP, SEXP loc2SEXP, SEXP box1SEXP, SEXP box2SEXP, SEXP boxadd1SEXP, SEXP boxadd2SEXP, SEXP skypixminSEXP, SEXP boxitersSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< Rcpp::NumericMatrix >::type image(imageSEXP);
+    Rcpp::traits::input_parameter< Rcpp::Nullable<Rcpp::IntegerMatrix> >::type objects(objectsSEXP);
+    Rcpp::traits::input_parameter< Rcpp::Nullable<Rcpp::IntegerMatrix> >::type mask(maskSEXP);
+    Rcpp::traits::input_parameter< const double >::type loc1(loc1SEXP);
+    Rcpp::traits::input_parameter< const double >::type loc2(loc2SEXP);
+    Rcpp::traits::input_parameter< const double >::type box1(box1SEXP);
+    Rcpp::traits::input_parameter< const double >::type box2(box2SEXP);
+    Rcpp::traits::input_parameter< const double >::type boxadd1(boxadd1SEXP);
+    Rcpp::traits::input_parameter< const double >::type boxadd2(boxadd2SEXP);
+    Rcpp::traits::input_parameter< const int >::type skypixmin(skypixminSEXP);
+    Rcpp::traits::input_parameter< const int >::type boxiters(boxitersSEXP);
+    rcpp_result_gen = Rcpp::wrap(adacsFindSkyCellValuesC(image, objects, mask, loc1, loc2, box1, box2, boxadd1, boxadd2, skypixmin, boxiters));
+    return rcpp_result_gen;
+END_RCPP
+}
+// adacsFindSkyCellValuesBoxC
+Rcpp::IntegerVector adacsFindSkyCellValuesBoxC(Rcpp::NumericMatrix image, Rcpp::Nullable<Rcpp::IntegerMatrix> objects, Rcpp::Nullable<Rcpp::IntegerMatrix> mask, const double loc1, const double loc2, const double box1, const double box2, const double boxadd1, const double boxadd2, const int skypixmin, const int boxiters);
+RcppExport SEXP _ProFound_adacsFindSkyCellValuesBoxC(SEXP imageSEXP, SEXP objectsSEXP, SEXP maskSEXP, SEXP loc1SEXP, SEXP loc2SEXP, SEXP box1SEXP, SEXP box2SEXP, SEXP boxadd1SEXP, SEXP boxadd2SEXP, SEXP skypixminSEXP, SEXP boxitersSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< Rcpp::NumericMatrix >::type image(imageSEXP);
+    Rcpp::traits::input_parameter< Rcpp::Nullable<Rcpp::IntegerMatrix> >::type objects(objectsSEXP);
+    Rcpp::traits::input_parameter< Rcpp::Nullable<Rcpp::IntegerMatrix> >::type mask(maskSEXP);
+    Rcpp::traits::input_parameter< const double >::type loc1(loc1SEXP);
+    Rcpp::traits::input_parameter< const double >::type loc2(loc2SEXP);
+    Rcpp::traits::input_parameter< const double >::type box1(box1SEXP);
+    Rcpp::traits::input_parameter< const double >::type box2(box2SEXP);
+    Rcpp::traits::input_parameter< const double >::type boxadd1(boxadd1SEXP);
+    Rcpp::traits::input_parameter< const double >::type boxadd2(boxadd2SEXP);
+    Rcpp::traits::input_parameter< const int >::type skypixmin(skypixminSEXP);
+    Rcpp::traits::input_parameter< const int >::type boxiters(boxitersSEXP);
+    rcpp_result_gen = Rcpp::wrap(adacsFindSkyCellValuesBoxC(image, objects, mask, loc1, loc2, box1, box2, boxadd1, boxadd2, skypixmin, boxiters));
+    return rcpp_result_gen;
+END_RCPP
+}
 // water_cpp
 Rcpp::IntegerMatrix water_cpp(Rcpp::NumericVector image, const int nx, const int ny, const double abstol, const double reltol, const double cliptol, const int ext, const double skycut, const int pixcut, const bool verbose, const int Ncheck);
 RcppExport SEXP _ProFound_water_cpp(SEXP imageSEXP, SEXP nxSEXP, SEXP nySEXP, SEXP abstolSEXP, SEXP reltolSEXP, SEXP cliptolSEXP, SEXP extSEXP, SEXP skycutSEXP, SEXP pixcutSEXP, SEXP verboseSEXP, SEXP NcheckSEXP) {
@@ -103,6 +162,9 @@ END_RCPP
 static const R_CallMethodDef CallEntries[] = {
     {"_ProFound_get_median", (DL_FUNC) &_ProFound_get_median, 2},
     {"_ProFound_subset_cpp_inplace", (DL_FUNC) &_ProFound_subset_cpp_inplace, 8},
+    {"_ProFound_subset_cpp_inplaceI", (DL_FUNC) &_ProFound_subset_cpp_inplaceI, 8},
+    {"_ProFound_adacsFindSkyCellValuesC", (DL_FUNC) &_ProFound_adacsFindSkyCellValuesC, 11},
+    {"_ProFound_adacsFindSkyCellValuesBoxC", (DL_FUNC) &_ProFound_adacsFindSkyCellValuesBoxC, 11},
     {"_ProFound_water_cpp", (DL_FUNC) &_ProFound_water_cpp, 11},
     {"_ProFound_order_cpp", (DL_FUNC) &_ProFound_order_cpp, 1},
     {"_ProFound_tabulate_cpp", (DL_FUNC) &_ProFound_tabulate_cpp, 2},
