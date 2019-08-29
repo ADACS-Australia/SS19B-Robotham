@@ -1,4 +1,15 @@
-profoundProFound=function(image=NULL, segim=NULL, objects=NULL, mask=NULL, skycut=1, pixcut=3, tolerance=4, ext=2, reltol=0, cliptol=Inf, sigma=1, smooth=TRUE, SBlim=NULL, size=5, shape='disc', iters=6, threshold=1.05, magzero=0, gain=NULL, pixscale=1, sky=NULL, skyRMS=NULL, redosegim=FALSE, redosky=TRUE, redoskysize=21, box=c(100,100), grid=box, type='bicubic', skytype='median', skyRMStype='quanlo', roughpedestal=FALSE, sigmasel=1, skypixmin=prod(box)/2, boxadd=box/2, boxiters=0, iterskyloc=TRUE, deblend=FALSE, df=3, radtrunc=2, iterative=FALSE, doclip=TRUE, shiftloc = FALSE, paddim = TRUE, header=NULL, verbose=FALSE, plot=FALSE, stats=TRUE, rotstats=FALSE, boundstats=FALSE, nearstats=boundstats, groupstats=boundstats, group=NULL, groupby='segim_orig', offset=1, haralickstats=FALSE, sortcol="segID", decreasing=FALSE, lowmemory=FALSE, keepim=TRUE, watershed='ProFound', pixelcov=FALSE, deblendtype='fit', psf=NULL, fluxweight='sum', convtype = 'brute', convmode = 'extended', fluxtype='Raw', app_diam=1, Ndeblendlim=Inf, ...){
+profoundProFound=function(image=NULL, segim=NULL, objects=NULL, mask=NULL, skycut=1, pixcut=3, tolerance=4, ext=2, reltol=0, cliptol=Inf, sigma=1, smooth=TRUE, SBlim=NULL, size=5, shape='disc', iters=6, threshold=1.05, magzero=0, gain=NULL, pixscale=1, sky=NULL, skyRMS=NULL, redosegim=FALSE, redosky=TRUE, redoskysize=21, box=c(101,101), grid=box, type='bicubic', skytype='median', skyRMStype='quanlo', roughpedestal=FALSE, sigmasel=1, skypixmin=prod(box)/2, boxadd=box/2, boxiters=0, iterskyloc=TRUE, deblend=FALSE, df=3, radtrunc=2, iterative=FALSE, doclip=TRUE, shiftloc = FALSE, paddim = TRUE, header=NULL, verbose=FALSE, plot=FALSE, stats=TRUE, rotstats=FALSE, boundstats=FALSE, nearstats=boundstats, groupstats=boundstats, group=NULL, groupby='segim_orig', offset=1, haralickstats=FALSE, sortcol="segID", decreasing=FALSE, lowmemory=FALSE, keepim=TRUE, watershed='ProFound', pixelcov=FALSE, deblendtype='fit', psf=NULL, fluxweight='sum', convtype = 'brute', convmode = 'extended', fluxtype='Raw', app_diam=1, Ndeblendlim=Inf, ...){
+  if (doclip) {
+    doRMNA <<- FALSE
+  } else {
+    doRMNA <<- TRUE
+  }
+  BOTH <<- 1
+  LO <<- 2
+  HI <<- 3
+  
+  AUTO <<- 1
+  SET <<- 2
   if(verbose){message('Running ProFound:')}
   timestart=proc.time()[3]
   
@@ -121,8 +132,8 @@ profoundProFound=function(image=NULL, segim=NULL, objects=NULL, mask=NULL, skycu
     if(verbose){message(paste('Making initial sky map -',round(proc.time()[3]-timestart,3),'sec'))}
     roughsky=profoundMakeSkyGrid(image=image, objects=objects, mask=mask, box=box, grid=grid, type=type, skytype=skytype, skyRMStype=skyRMStype, sigmasel=sigmasel, skypixmin=skypixmin, boxadd=boxadd, boxiters=0, doclip=doclip, shiftloc=shiftloc, paddim=paddim)
     if(roughpedestal){
-      roughsky$sky=median(roughsky$sky,na.rm=TRUE)
-      roughsky$skyRMS=median(roughsky$skyRMS,na.rm=TRUE)
+      roughsky$sky=median(roughsky$sky,na.rm=doRMNA)
+      roughsky$skyRMS=median(roughsky$skyRMS,na.rm=doRMNA)
     }
     if(hassky==FALSE){
       sky=roughsky$sky
@@ -207,7 +218,7 @@ profoundProFound=function(image=NULL, segim=NULL, objects=NULL, mask=NULL, skycu
       segstats=.profoundFluxCalcMin(image=image, segim=segim, mask=mask)
       skystats=.profoundFluxCalcMin(image=sky, segim=segim, mask=mask)
       skystats=skystats$flux/skystats$N100
-      skymed=median(skystats, na.rm=TRUE)
+      skymed=median(skystats, na.rm=doRMNA)
       origfrac=segstats$flux - (skystats*segstats$N100)
       
       if(iterskyloc){
@@ -480,7 +491,7 @@ plot.profound=function(x, logR50=TRUE, dmag=0.5, hist='sky', ...){
   segdiff=x$segim-x$segim_orig
   segdiff[segdiff<0]=0
   
-  if(all(x$skyRMS>0, na.rm=TRUE)){
+  if(all(x$skyRMS>0, na.rm=doRMNA)){
     image = (x$image-x$sky)/x$skyRMS
   }else{
     image = (x$image-x$sky)
@@ -491,8 +502,8 @@ plot.profound=function(x, logR50=TRUE, dmag=0.5, hist='sky', ...){
   }
   
   cmap = rev(colorRampPalette(brewer.pal(9,'RdYlBu'))(100))
-  maximg = quantile(abs(image[is.finite(image)]), 0.995, na.rm=TRUE)
-  stretchscale = 1/median(abs(image), na.rm=TRUE)
+  maximg = quantile(abs(image[is.finite(image)]), 0.995, na.rm=doRMNA)
+  stretchscale = 1/median(abs(image), na.rm=doRMNA)
   
   layout(matrix(1:9, 3, byrow=TRUE))
   
@@ -503,14 +514,14 @@ plot.profound=function(x, logR50=TRUE, dmag=0.5, hist='sky', ...){
     if(!is.null(x$mask)){magimage(x$mask!=0, col=c(NA,hsv(alpha=0.2)), add=TRUE, magmap=FALSE, zlim=c(0,1))}
     
     par(mar=c(3.5,3.5,0.5,0.5))
-    magimageWCS(x$segim, x$header, col=c(NA, rainbow(max(x$segim,na.rm=TRUE), end=2/3)), magmap=FALSE)
+    magimageWCS(x$segim, x$header, col=c(NA, rainbow(max(x$segim,na.rm=doRMNA), end=2/3)), magmap=FALSE)
     if(!is.null(x$mask)){magimage(x$mask!=0, col=c(NA,hsv(alpha=0.2)), add=TRUE, magmap=FALSE, zlim=c(0,1))}
     abline(v=c(0,dim(x$image)[1]))
     abline(h=c(0,dim(x$image)[2]))
     
     par(mar=c(3.5,3.5,0.5,0.5))
     magimageWCS(image, x$header)
-    magimage(segdiff, col=c(NA, rainbow(max(x$segim,na.rm=TRUE), end=2/3)), magmap=FALSE, add=TRUE)
+    magimage(segdiff, col=c(NA, rainbow(max(x$segim,na.rm=doRMNA), end=2/3)), magmap=FALSE, add=TRUE)
     if(!is.null(x$mask)){magimage(x$mask!=0, col=c(NA,hsv(alpha=0.2)), add=TRUE, magmap=FALSE, zlim=c(0,1))}
     
     par(mar=c(3.5,3.5,0.5,0.5))
@@ -528,8 +539,8 @@ plot.profound=function(x, logR50=TRUE, dmag=0.5, hist='sky', ...){
     axis(side=1, at=xmax+0.25, labels=xmax+0.25, tick=FALSE, line=-1, col.axis='red')
       
     par(mar=c(3.5,3.5,0.5,0.5))
-    #stretchscale = 1/median(abs(x$sky), na.rm=TRUE)
-    #maxsky = quantile(abs(x$sky[is.finite(x$sky)]), 0.995, na.rm=TRUE)
+    #stretchscale = 1/median(abs(x$sky), na.rm=doRMNA)
+    #maxsky = quantile(abs(x$sky[is.finite(x$sky)]), 0.995, na.rm=doRMNA)
     #magimageWCS(x$sky, x$header, locut=-maxsky, hicut=maxsky, range=c(-1,1), type='num', zlim=c(-1,1), stretchscale=stretchscale, col=cmap)
     magimageWCS(x$sky, x$header, qdiff=TRUE)
     legend('topleft',legend='sky',bg='white')
@@ -539,7 +550,7 @@ plot.profound=function(x, logR50=TRUE, dmag=0.5, hist='sky', ...){
     legend('topleft',legend='skyRMS',bg='white')
     
     if(hist=='iters'){
-      maghist(x$segstats$iter, breaks=seq(-0.5,max(x$segstats$iter, na.rm=TRUE)+0.5,by=1), majorn=max(x$segstats$iter, na.rm=TRUE)+1, xlab='Number of Dilations', ylab='#', verbose=FALSE)
+      maghist(x$segstats$iter, breaks=seq(-0.5,max(x$segstats$iter, na.rm=doRMNA)+0.5,by=1), majorn=max(x$segstats$iter, na.rm=doRMNA)+1, xlab='Number of Dilations', ylab='#', verbose=FALSE)
     }else if(hist=='sky'){
       try({
         if(!is.null(x$objects_redo)){
@@ -563,7 +574,7 @@ plot.profound=function(x, logR50=TRUE, dmag=0.5, hist='sky', ...){
     
     par(mar=c(3.5,3.5,0.5,0.5))
     fluxrat=x$segstats$flux/x$segstats$flux_err
-    magplot(x$segstats$SB_N90, fluxrat, pch='.', col=hsv(alpha=0.5), ylim=c(0.5,max(fluxrat, 1, na.rm=TRUE)), cex=3, xlab='SB90 / mag/asec-sq', ylab='Flux/Flux-Error', grid=TRUE, log='y')
+    magplot(x$segstats$SB_N90, fluxrat, pch='.', col=hsv(alpha=0.5), ylim=c(0.5,max(fluxrat, 1, na.rm=doRMNA)), cex=3, xlab='SB90 / mag/asec-sq', ylab='Flux/Flux-Error', grid=TRUE, log='y')
   
   }else{
     
@@ -572,14 +583,14 @@ plot.profound=function(x, logR50=TRUE, dmag=0.5, hist='sky', ...){
     if(!is.null(x$mask)){magimage(x$mask!=0, col=c(NA,hsv(alpha=0.2)), add=TRUE, magmap=FALSE, zlim=c(0,1))}
     
     par(mar=c(3.5,3.5,0.5,0.5))
-    magimage(x$segim, col=c(NA, rainbow(max(x$segim,na.rm=TRUE), end=2/3)), magmap=FALSE)
+    magimage(x$segim, col=c(NA, rainbow(max(x$segim,na.rm=doRMNA), end=2/3)), magmap=FALSE)
     if(!is.null(x$mask)){magimage(x$mask!=0, col=c(NA,hsv(alpha=0.2)), add=TRUE, magmap=FALSE, zlim=c(0,1))}
     abline(v=c(0,dim(image)[1]))
     abline(h=c(0,dim(image)[2]))
     
     par(mar=c(3.5,3.5,0.5,0.5))
     magimage(image)
-    magimage(segdiff, col=c(NA, rainbow(max(x$segim,na.rm=TRUE), end=2/3)), magmap=FALSE, add=TRUE)
+    magimage(segdiff, col=c(NA, rainbow(max(x$segim,na.rm=doRMNA), end=2/3)), magmap=FALSE, add=TRUE)
     if(!is.null(x$mask)){magimage(x$mask!=0, col=c(NA,hsv(alpha=0.2)), add=TRUE, magmap=FALSE, zlim=c(0,1))}
 
     par(mar=c(3.5,3.5,0.5,0.5))
@@ -591,8 +602,8 @@ plot.profound=function(x, logR50=TRUE, dmag=0.5, hist='sky', ...){
     axis(side=1, at=xmax+0.25, labels=xmax+0.25, tick=FALSE, line=-1, col.axis='red')
     
     par(mar=c(3.5,3.5,0.5,0.5))
-    #stretchscale = 1/median(abs(x$sky), na.rm=TRUE)
-    #maxsky = quantile(abs(x$sky[is.finite(x$sky)]), 0.995, na.rm=TRUE)
+    #stretchscale = 1/median(abs(x$sky), na.rm=doRMNA)
+    #maxsky = quantile(abs(x$sky[is.finite(x$sky)]), 0.995, na.rm=doRMNA)
     #magimage(x$sky, locut=-maxsky, hicut=maxsky, range=c(-1,1), type='num', zlim=c(-1,1), col=cmap)
     magimage(x$sky, qdiff=TRUE)
     legend('topleft',legend='sky',bg='white')
@@ -602,7 +613,7 @@ plot.profound=function(x, logR50=TRUE, dmag=0.5, hist='sky', ...){
     legend('topleft',legend='skyRMS',bg='white')
     
     if(hist=='iters'){
-      maghist(x$segstats$iter, breaks=seq(-0.5,max(x$segstats$iter, na.rm=TRUE)+0.5,by=1), majorn=max(x$segstats$iter, na.rm=TRUE)+1, xlab='Number of Dilations', ylab='#', verbose=FALSE)
+      maghist(x$segstats$iter, breaks=seq(-0.5,max(x$segstats$iter, na.rm=doRMNA)+0.5,by=1), majorn=max(x$segstats$iter, na.rm=doRMNA)+1, xlab='Number of Dilations', ylab='#', verbose=FALSE)
     }else if(hist=='sky'){
       try({
         if(!is.null(x$objects_redo)){
@@ -626,7 +637,7 @@ plot.profound=function(x, logR50=TRUE, dmag=0.5, hist='sky', ...){
     
     par(mar=c(3.5,3.5,0.5,0.5))
     fluxrat=x$segstats$flux/x$segstats$flux_err
-    magplot(x$segstats$SB_N90, fluxrat, pch='.', col=hsv(alpha=0.5), ylim=c(0.5,max(fluxrat, 1, na.rm=TRUE)), cex=3, xlab='SB90 / mag/pix-sq', ylab='Flux/Flux-Error', grid=TRUE, log='y')
+    magplot(x$segstats$SB_N90, fluxrat, pch='.', col=hsv(alpha=0.5), ylim=c(0.5,max(fluxrat, 1, na.rm=doRMNA)), cex=3, xlab='SB90 / mag/pix-sq', ylab='Flux/Flux-Error', grid=TRUE, log='y')
   }
   
 }
@@ -642,7 +653,7 @@ plot.profound=function(x, logR50=TRUE, dmag=0.5, hist='sky', ...){
     IDfin[NegFlux]=IDmat[NegFlux]
     IDfin[NegFlux[NegFlux[,2]==0,1],1]=0
   }
-  tempout=suppressWarnings(apply(IDfin,1,min,na.rm=TRUE))
+  tempout=suppressWarnings(apply(IDfin,1,min,na.rm=doRMNA))
   tempout[is.infinite(tempout)]=dim(diffmat)[2]
   tempout+1
 }

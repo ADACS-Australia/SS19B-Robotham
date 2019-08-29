@@ -200,7 +200,7 @@ magcutoutADACSInPlaceI = function (image, loc = dim(image)/2, box = c(100, 100),
   output = list(image = image)
   invisible(output)
 }
-magclipADACS=function(x, sigma='auto', clipiters=5, sigmasel=1, estimate='both'){
+magclipADACS=function(x, sigma=AUTO, clipiters=5, sigmasel=1, estimate=BOTH){
   sel = !is.na(x) & !is.nan(x) & !is.null(x) & is.finite(x)
   clipx=sort(x[sel])
   #oclipx=order(x)
@@ -213,23 +213,15 @@ magclipADACS=function(x, sigma='auto', clipiters=5, sigmasel=1, estimate='both')
       if(newlen<=1){break}
       oldlen=newlen
       roughmed=clipx[newlen/2]
-      if(sigma=='auto'){
-        clipsigma=qnorm(1-2/max(newlen,2,na.rm=TRUE))
-      }else{
-        clipsigma=sigma
-      }
-      if(estimate=='both'){
-        #vallims=clipsigma*diff(quantile(clipx,c(1-sigcut,sigcut)))/2/sigmasel
-        vallims=clipsigma*(clipx[sigcut*newlen]-clipx[(1-sigcut)*newlen])/2/sigmasel
-      }
-      if(estimate=='lo'){
-        #vallims=clipsigma*(roughmed-quantile(clipx,1-sigcut))/sigmasel
-        vallims=clipsigma*(roughmed-clipx[(1-sigcut)*newlen])/sigmasel
-      }
-      if(estimate=='hi'){
-        #vallims=clipsigma*(quantile(clipx,sigcut)-roughmed)/sigmasel
-        vallims=clipsigma*(clipx[sigcut*newlen]-roughmed)/sigmasel
-      }
+      clipsigma = switch(sigma,
+                         qnorm(1-2/max(newlen,2,na.rm=TRUE)), # AUTO
+                         clipsigma=sigma # SET
+                         )
+      vallims = switch(estimate,
+                       clipsigma*(clipx[sigcut*newlen]-clipx[(1-sigcut)*newlen])/2/sigmasel, # BOTH
+                       clipsigma*(roughmed-clipx[(1-sigcut)*newlen])/sigmasel, # LO
+                       clipsigma*(clipx[sigcut*newlen]-roughmed)/sigmasel # HI
+             )
       
       clipx=clipx[clipx>=(roughmed-vallims) & clipx<=(roughmed+vallims)]
       newlen=length(clipx)

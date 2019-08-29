@@ -4,6 +4,12 @@ profoundProFoundADACSInPlace=function(image=NULL, segim=NULL, objects=NULL, mask
   } else {
     doRMNA <<- TRUE
   }
+  BOTH <<- 1
+  LO <<- 2
+  HI <<- 3
+  
+  AUTO <<- 1
+  SET <<- 2
   if(verbose){message('Running ProFound:')}
   timestart=proc.time()[3]
   
@@ -118,7 +124,8 @@ profoundProFoundADACSInPlace=function(image=NULL, segim=NULL, objects=NULL, mask
   }
   
   # Create scratch matrices
-  scratch <- list(scratchN1=matrix(0.0,box[1],box[2]), scratchN2=matrix(0.0,box[1],box[2]),scratchI1=matrix(FALSE,box[1],box[2]), scratchI2=matrix(FALSE,box[1],box[2]))
+  #scratch <- list(scratchN1=matrix(0.0,box[1],box[2]), scratchN2=matrix(0.0,box[1],box[2]),scratchI1=matrix(FALSE,box[1],box[2]), scratchI2=matrix(FALSE,box[1],box[2]))
+  scratch <- list(scratchN1=matrix(0.0,box[1],box[2]), scratchN2=matrix(0.0,box[1],box[2]),scratchI1=matrix(FALSE,box[1],box[2]), scratchI2=matrix(FALSE,box[1],box[2]), scratchSKY=matrix(0.0,dim(image)[1],dim(image)[2]),scratchSKYRMS=matrix(0.0,dim(image)[1],dim(image)[2]))
   
   #Check for user provided sky, and compute if missing:
   
@@ -128,7 +135,7 @@ profoundProFoundADACSInPlace=function(image=NULL, segim=NULL, objects=NULL, mask
   if((hassky==FALSE | hasskyRMS==FALSE) & is.null(segim)){
     if(verbose){message(paste('Making initial sky map -',round(proc.time()[3]-timestart,3),'sec'))}
     roughsky=profoundMakeSkyGridADACSInPlace(image=image, objects=objects, mask=mask, box=box, grid=grid, type=type, skytype=skytype, skyRMStype=skyRMStype, sigmasel=sigmasel, 
-                                             skypixmin=skypixmin, boxadd=boxadd, boxiters=0, doclip=doclip, shiftloc=shiftloc, paddim=paddim,scratch=scratch)
+                                             skypixmin=skypixmin, boxadd=boxadd, boxiters=0, doclip=doclip, shiftloc=shiftloc, paddim=paddim,scratch=scratch,final=FALSE)
     if(roughpedestal){
       roughsky$sky=median(roughsky$sky,na.rm=doRMNA)
       roughsky$skyRMS=median(roughsky$skyRMS,na.rm=doRMNA)
@@ -182,7 +189,7 @@ profoundProFoundADACSInPlace=function(image=NULL, segim=NULL, objects=NULL, mask
       }
       if(verbose){message(paste('Making better sky map -',round(proc.time()[3]-timestart,3),'sec'))}
       bettersky=profoundMakeSkyGridADACSInPlace(image=image, objects=objects_redo, mask=mask, box=box, grid=grid, type=type, skytype=skytype, skyRMStype=skyRMStype, sigmasel=sigmasel,
-                                                skypixmin=skypixmin, boxadd=boxadd, boxiters=boxiters, doclip=doclip, shiftloc=shiftloc, paddim=paddim, scratch=scratch)
+                                                skypixmin=skypixmin, boxadd=boxadd, boxiters=boxiters, doclip=doclip, shiftloc=shiftloc, paddim=paddim, scratch=scratch,final=TRUE)
       if(hassky==FALSE){
         sky=bettersky$sky
         if(verbose){message(' - Sky statistics :')}
@@ -291,7 +298,7 @@ profoundProFoundADACSInPlace=function(image=NULL, segim=NULL, objects=NULL, mask
       objects_redo=profoundMakeSegimDilate(segim=objects, mask=mask, size=redoskysize, shape=shape, sky=sky, verbose=verbose, plot=FALSE, stats=FALSE, rotstats=FALSE)$objects
       if(verbose){message(paste('Making final sky map -',round(proc.time()[3]-timestart,3),'sec'))}
       sky=profoundMakeSkyGridADACSInPlace(image=image, objects=objects_redo, mask=mask, box=box, grid=grid, type=type, skytype=skytype, skyRMStype=skyRMStype, sigmasel=sigmasel,
-                                          skypixmin=skypixmin, boxadd=boxadd, boxiters=boxiters, doclip=doclip, shiftloc=shiftloc, paddim=paddim, scratch=scratch)
+                                          skypixmin=skypixmin, boxadd=boxadd, boxiters=boxiters, doclip=doclip, shiftloc=shiftloc, paddim=paddim, scratch=scratch,final=TRUE)
       skyRMS=sky$skyRMS
       sky=sky$sky
       if(verbose){message(' - Sky statistics :')}

@@ -21,6 +21,18 @@ adacsFindSkyCellValuesBoxC <- function(image, objects, mask, loc1, loc2, box1, b
     .Call(`_ProFound_adacsFindSkyCellValuesBoxC`, image, objects, mask, loc1, loc2, box1, box2, boxadd1, boxadd2, skypixmin, boxiters)
 }
 
+adacsmagclip <- function(x, sigma, clipiters, sigmasel, estimate) {
+    .Call(`_ProFound_adacsmagclip`, x, sigma, clipiters, sigmasel, estimate)
+}
+
+adacsmagclipV <- function(x, sigma, clipiters, sigmasel, estimate) {
+    .Call(`_ProFound_adacsmagclipV`, x, sigma, clipiters, sigmasel, estimate)
+}
+
+interpolateAkimaGrid <- function(xseq, yseq, tempmat_sky, xxx, yyy, output) {
+    invisible(.Call(`_ProFound_interpolateAkimaGrid`, xseq, yseq, tempmat_sky, xxx, yyy, output))
+}
+
 water_cpp <- function(image = 0L, nx = 1L, ny = 1L, abstol = 1, reltol = 0, cliptol = 1000000, ext = 1L, skycut = 0, pixcut = 1L, verbose = FALSE, Ncheck = 1000000L) {
     .Call(`_ProFound_water_cpp`, image, nx, ny, abstol, reltol, cliptol, ext, skycut, pixcut, verbose, Ncheck)
 }
