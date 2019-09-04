@@ -24,6 +24,7 @@
 
 #include <Rcpp.h>
 #include <algorithm>
+#include <cmath>
 #include <vector>
 // An example of how to call an R function from C/C++
 // [[Rcpp::export]]
@@ -225,7 +226,7 @@ Rcpp::NumericVector adacsmagclip(Rcpp::NumericMatrix x, const int sigma, const i
   int length=0;
   for (int i=0;i<nrow*ncol;i++)
   {
-    if (!isnan(myx[i])) {
+    if (!std::isnan(myx[i])) {
       myx[length++] = myx[i];
     }
   }
@@ -291,7 +292,7 @@ Rcpp::NumericVector adacsmagclipV(Rcpp::NumericVector x, const int sigma, const 
   int length=0;
   for (int i=0;i<nb;i++)
   {
-    if (!isnan(myx[i])) {
+    if (!std::isnan(myx[i])) {
       myx[length++] = myx[i];
     }
   }
