@@ -89,12 +89,12 @@ profoundFluxDeblend=function(image=NULL, segim=NULL, segstats=NULL, groupim=NULL
     fluxfrac=rep(0,length(segIDlist))
     beamcorrect=rep(1,length(segIDlist))
     
-    groupsum=sum(image[tempgridgroup],na.rm=TRUE)
+    groupsum=sum(image[tempgridgroup],na.rm=doRMNA)
     
     for(j in 1:length(segIDlist)){
       
       tempgridseg=which(segim[tempgridgroup]==segIDlist[j])
-      segsum=sum(image_temp[tempgridgroup[tempgridseg,,drop=FALSE]],na.rm=TRUE)
+      segsum=sum(image_temp[tempgridgroup[tempgridseg,,drop=FALSE]],na.rm=doRMNA)
       if(segsum<0){segsum=0}
       fluxfrac[j]=segsum/groupsum
         
@@ -185,8 +185,8 @@ profoundFluxDeblend=function(image=NULL, segim=NULL, segstats=NULL, groupim=NULL
     Qgroup_db=sum(normmat-image[tempgridgroup])/groupsum
     
     beamcorrect[beamcorrect<1]=1
-    output[Npad:(Npad+Ngroup-1),"flux_db"]=.colSums(weightmatrix*image[tempgridgroup], dim(weightmatrix)[1], dim(weightmatrix)[2], na.rm=TRUE)
-    output[Npad:(Npad+Ngroup-1),"N100_db"]=.colSums(weightmatrix, dim(weightmatrix)[1], dim(weightmatrix)[2], na.rm=TRUE)
+    output[Npad:(Npad+Ngroup-1),"flux_db"]=.colSums(weightmatrix*image[tempgridgroup], dim(weightmatrix)[1], dim(weightmatrix)[2], na.rm=doRMNA)
+    output[Npad:(Npad+Ngroup-1),"N100_db"]=.colSums(weightmatrix, dim(weightmatrix)[1], dim(weightmatrix)[2], na.rm=doRMNA)
     output[Npad:(Npad+Ngroup-1),"flux_segfrac"]=fluxfrac
     output[Npad:(Npad+Ngroup-1),"Qseg_db"]=Qseg_db
     output[Npad:(Npad+Ngroup-1),"Qgroup_db"]=Qgroup_db
@@ -204,7 +204,7 @@ profoundFluxDeblend=function(image=NULL, segim=NULL, segstats=NULL, groupim=NULL
     output[is.na(output[,"flux_db"]),c("segID", "flux_db", "mag_db", "N100_db")]=segstats[is.na(output[,"flux_db"]),c("segID", "flux","mag","N100")]
     output=cbind(output, flux_err_sky_db=segstats[,"flux_err_sky"]*sqrt(output[,'N100_db']/segstats[,'N100']))
     output=cbind(output, flux_err_skyRMS_db=segstats[,"flux_err_skyRMS"]*sqrt(output[,'N100_db']/segstats[,'N100']))
-    output=cbind(output, flux_err_shot_db=segstats[,"flux_err_shot"]*suppressWarnings(sqrt(max(output[,'flux_db']/segstats[,'flux'],0,na.rm=TRUE))))
+    output=cbind(output, flux_err_shot_db=segstats[,"flux_err_shot"]*suppressWarnings(sqrt(max(output[,'flux_db']/segstats[,'flux'],0,na.rm=doRMNA))))
     output=cbind(output, flux_err_Qseg_db=abs(segstats[,'flux']-output[,'flux_db'])*output[,"Qseg_db"])
     output=cbind(output, flux_err_db=sqrt(output[,'flux_err_sky_db']^2+output[,'flux_err_skyRMS_db']^2+output[,'flux_err_shot_db']^2+output[,'flux_err_Qseg_db']^2))
     output=cbind(output, mag_err_db=(2.5/log(10))*abs(output[,'flux_err_db']/output[,'flux_db']))
@@ -283,7 +283,7 @@ profoundFitMagPSF=function(xcen=NULL, ycen=NULL, RAcen=NULL, Deccen=NULL, mag=NU
   
   if(is.null(mag)){
     tempflux=image[cbind(ceiling(xcen),ceiling(ycen))]
-    tempflux=tempflux*sum(image, na.rm=TRUE)/sum(tempflux, na.rm=TRUE)
+    tempflux=tempflux*sum(image, na.rm=doRMNA)/sum(tempflux, na.rm=doRMNA)
     mag=profoundFlux2Mag(flux=tempflux, magzero=magzero)
   }
   if(is.null(im_sigma)){stop('Need im_sigma!')}
@@ -321,8 +321,8 @@ profoundFitMagPSF=function(xcen=NULL, ycen=NULL, RAcen=NULL, Deccen=NULL, mag=NU
     xygrid=expand.grid(1:dim(psf)[1],1:dim(psf)[2])-0.5
   }
   
-  psf=psf/sum(psf,na.rm=TRUE)
-  beamscale=sqrt(1/sum(psf^2,na.rm=TRUE))
+  psf=psf/sum(psf,na.rm=doRMNA)
+  beamscale=sqrt(1/sum(psf^2,na.rm=doRMNA))
   
   diffmag=rep(0,Nmodels)
   psfLL=rep(0,Nmodels)
@@ -521,10 +521,10 @@ profoundFitMagPSF=function(xcen=NULL, ycen=NULL, RAcen=NULL, Deccen=NULL, mag=NU
 }
 
 .minlike_mag=function(par,singmodel,image,im_sigma){
-  0.5*sum((image-(singmodel*(10^(-0.4*par)-1)))^2/im_sigma^2, na.rm=TRUE)
+  0.5*sum((image-(singmodel*(10^(-0.4*par)-1)))^2/im_sigma^2, na.rm=doRMNA)
 }
 
 .minlike_flux=function(par,singmodel,image,im_sigma){
-  flux=sum(singmodel, na.rm=TRUE)
-  0.5*sum((image-(singmodel*(1+par/flux)))^2/im_sigma^2, na.rm=TRUE)
+  flux=sum(singmodel, na.rm=doRMNA)
+  0.5*sum((image-(singmodel*(1+par/flux)))^2/im_sigma^2, na.rm=doRMNA)
 }

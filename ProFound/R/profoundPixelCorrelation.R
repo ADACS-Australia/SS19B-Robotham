@@ -34,8 +34,8 @@ profoundPixelCorrelation=function(image=NULL, objects=NULL, mask=NULL, sky=0, sk
     cory_neg[i]=cor(as.numeric(image_neg[,1:(ylen-laguse)]), as.numeric(image[,1:(ylen-laguse)+laguse]), use="na.or.complete")
     corx_pos[i]=cor(as.numeric(image_pos[1:(xlen-laguse),]), as.numeric(image[1:(xlen-laguse)+laguse,]), use="na.or.complete")
     cory_pos[i]=cor(as.numeric(image_pos[,1:(ylen-laguse)]), as.numeric(image[,1:(ylen-laguse)+laguse]), use="na.or.complete")
-    relsdx[i]=sd(as.numeric(image[1:(xlen-laguse),])-as.numeric(image[1:(xlen-laguse)+laguse,]), na.rm=TRUE)/sqrt(2)
-    relsdy[i]=sd(as.numeric(image[,1:(ylen-laguse)])-as.numeric(image[,1:(ylen-laguse)+laguse]), na.rm=TRUE)/sqrt(2)
+    relsdx[i]=sd(as.numeric(image[1:(xlen-laguse),])-as.numeric(image[1:(xlen-laguse)+laguse,]), na.rm=doRMNA)/sqrt(2)
+    relsdy[i]=sd(as.numeric(image[,1:(ylen-laguse)])-as.numeric(image[,1:(ylen-laguse)+laguse]), na.rm=doRMNA)/sqrt(2)
   }
   
   output_cortab=data.frame(lag=lag, corx=corx, cory=cory, corx_neg=corx_neg, cory_neg=cory_neg, corx_pos=corx_pos, cory_pos=cory_pos, corx_diff=corx_pos-corx_neg, cory_diff=cory_pos-cory_neg, relsdx=relsdx, relsdy=relsdy)

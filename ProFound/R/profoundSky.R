@@ -151,6 +151,10 @@ profoundSkyEst=function(image=NULL, objects=NULL, mask=NULL, cutlo=cuthi/2, cuth
 
 profoundSkyEstLoc=function(image=NULL, objects=NULL, mask=NULL, loc=dim(image)/2, box=c(100,100), skytype='median', skyRMStype='quanlo', sigmasel=1, skypixmin=prod(box)/2, boxadd=box/2, boxiters=0, doclip=TRUE, shiftloc = FALSE, paddim = TRUE, plot=FALSE, ...){
   if(!is.null(objects) | !is.null(mask)){
+    result = FindSkyCellValues(image, objects, mask, loc, box, skypixmin, boxadd, boxiters, shiftloc, paddim)
+    select = result$select
+    box=result$box
+    if (FALSE) {
     # if(!is.null(objects)){
     #   tempobj=magcutout(image=objects, loc=loc, box=box, shiftloc=shiftloc, paddim=paddim)$image==0
     #   tempobj[is.na(tempobj)]=0
@@ -191,6 +195,7 @@ profoundSkyEstLoc=function(image=NULL, objects=NULL, mask=NULL, loc=dim(image)/2
       select=magcutout(image, loc=loc, box=box, shiftloc=shiftloc, paddim=paddim)$image[tempcomb]
     }else{
       select=NA
+    }
     }
   }else{
     select=magcutout(image, loc=loc, box=box, shiftloc=shiftloc, paddim=paddim)$image
