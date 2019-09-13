@@ -320,8 +320,8 @@ profoundMakeSkyGrid=function(image=NULL, objects=NULL, mask=NULL, box=c(100,100)
     }
   }
   
-  xseq=c(-grid[1]/2,xseq,max(xseq)+grid[1]/2)
-  yseq=c(-grid[2]/2,yseq,max(yseq)+grid[2]/2)
+  xseq=c(-grid[1]/2,xseq,max(xseq)+grid[1])
+  yseq=c(-grid[2]/2,yseq,max(yseq)+grid[2])
   
   tempmat_sky=matrix(0,length(xseq),length(yseq))
   tempmat_sky[2:(length(xseq)-1),2:(length(yseq)-1)]=tempsky[,1]

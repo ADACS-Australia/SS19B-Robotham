@@ -298,9 +298,6 @@ Rcpp::NumericVector adacsmagclipV(Rcpp::NumericVector x, const int sigma, const 
   }
   std::sort (myx.begin(), myx.begin()+length, std::less<double_t>()); // ascending
   
-  for (int i=0;i<length;i++) {
-    //Rcpp::Rcout << "sorted["<<i<<"]="<<myx[i]<<"\n";
-  }
   int newlen = length;
   if(clipiters>0 & length>0){
     double sigcut=R::pnorm(sigmasel, 0.0, 1.0, 1, 0);
@@ -535,12 +532,12 @@ bool adacsakima::Initialise(int npts, const double_t *xorig, const double_t *yor
     {
       // do last interval
       s3 = Coeff::calcSlopeAtMiddle(&xorig[ncoeffs - 4], &yorig[ncoeffs - 4]);
-      x3 = xorig[npts - 1];
-      y3 = yorig[npts - 1];
-      x4 = xorig[npts - 2];
-      y4 = yorig[npts - 2];
-      dx = x3 - x4;
-      dy = y3 - y4;
+      x3 = xorig[npts - 2];
+      y3 = yorig[npts - 2];
+      x4 = xorig[npts - 1];
+      y4 = yorig[npts - 1];
+      dx = x4 - x3;
+      dy = y4 - y3;
       s4 = dy / dx;
       s3 = (s4 + s3) / 2;
     }
@@ -582,17 +579,19 @@ double_t adacsakima::InterpValue(double_t x) const
       return coeffs[spline].interpValue(x);
     }
   }
-
   return 0.0;
-  
 }
 
 //==================================================================================
 // [[Rcpp::export]]
-void interpolateAkimaGrid(Rcpp::NumericVector xseq,Rcpp::NumericVector yseq,Rcpp::NumericMatrix tempmat_sky,const int xxx,const int yyy,Rcpp::NumericMatrix output) {
-
-  int myxnpts = xxx;
-  int myynpts = yyy;
+void interpolateAkimaGrid(Rcpp::NumericVector xseq,Rcpp::NumericVector yseq,Rcpp::NumericMatrix tempmat_sky,Rcpp::NumericMatrix output) {
+/*
+ * An Matrix element is at (row,col)
+ * The elements of a row stack vertically
+ * Any row I is to the right of row I-1
+ */
+  int myxnpts = output.nrow();
+  int myynpts = output.ncol();
   const double_t* myx=REAL(xseq);
   const double_t* myy=REAL(yseq);
   int ncol=tempmat_sky.ncol();
@@ -618,7 +617,9 @@ void interpolateAkimaGrid(Rcpp::NumericVector xseq,Rcpp::NumericVector yseq,Rcpp
     akimaCOL.push_back(thisspline);
   }
   
+  // For each vertical row 
   for (int i = 1; i <= myxnpts; i++) {
+    // For a spline to interpolate vertically along the elements of the row
     double_t x = -0.5+i;
     for (int j = 1; j <= ncol; j++) {
       xin[j-1] = myy[j-1];
@@ -626,6 +627,8 @@ void interpolateAkimaGrid(Rcpp::NumericVector xseq,Rcpp::NumericVector yseq,Rcpp
     }
     adacsakima thisspline;
     thisspline.Initialise(ncol,xin.data(),zin.data());
+    
+    // Interpolate vertically for each element (j) in the current (i) output row
     for (int j = 1; j <= myynpts; j++) {
       double_t y = -0.5+j;
       output(i-1,j-1) = thisspline.InterpValue(y);

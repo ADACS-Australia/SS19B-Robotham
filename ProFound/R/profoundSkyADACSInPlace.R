@@ -240,22 +240,26 @@ profoundMakeSkyGridADACSInPlace=function(image=NULL, objects=NULL, mask=NULL, bo
   # Take these boxcar median values as anchors for akima splines to expand to cover all the original cells
   
   if (TRUE) {
-    xseq=c(-grid[1]/2,xseq,max(xseq)+grid[1]/2)
-    yseq=c(-grid[2]/2,yseq,max(yseq)+grid[2]/2)
+    # replace any NaN's with the median of the "boxcar median values" and then pad by one cell with linearly extrapolated values
+    xseq=c(-grid[1]/2,xseq,max(xseq)+grid[1])
+    yseq=c(-grid[2]/2,yseq,max(yseq)+grid[2])
     
+    # create padded matrix (surround matrix with one cell of zeros)
     tempmat_sky=matrix(0,length(xseq),length(yseq))
     tempmat_sky[2:(length(xseq)-1),2:(length(yseq)-1)]=tempsky[,1]
-    tempmat_sky[is.na(tempmat_sky)]= stats::median(tempmat_sky, na.rm = TRUE)
+    tempmat_sky[is.na(tempmat_sky)]= stats::median(tempmat_sky, na.rm = TRUE) # we do not want any NaN's
     
     tempmat_skyRMS=matrix(0,length(xseq),length(yseq))
     tempmat_skyRMS[2:(length(xseq)-1),2:(length(yseq)-1)]=tempsky[,2]
     tempmat_skyRMS[is.na(tempmat_skyRMS)]=stats::median(tempmat_skyRMS, na.rm = TRUE)
     
+    # work out the second point for linear extrapolation (the first one is at 1+1 and length(seq)-1)
     xstart=min(3,dim(tempmat_sky)[1]-1)
     ystart=min(3,dim(tempmat_sky)[2]-1)
     xend=max(length(xseq)-2,2)
     yend=max(length(yseq)-2,2)
     
+    # pad with linear extrapolations
     tempmat_sky[1,]=tempmat_sky[2,]*2-tempmat_sky[xstart,]
     tempmat_sky[length(xseq),]=tempmat_sky[length(xseq)-1,]*2-tempmat_sky[xend,]
     tempmat_sky[,1]=tempmat_sky[,2]*2-tempmat_sky[,ystart]
@@ -298,7 +302,6 @@ profoundMakeSkyGridADACSInPlace=function(image=NULL, objects=NULL, mask=NULL, bo
         temp_bi_sky=matrix(temp_bi_sky, dim(image)[1], dim(image)[2])
         temp_bi_skyRMS=matrix(temp_bi_skyRMS, dim(image)[1], dim(image)[2])
       } else {
-      print("NEW SPLINE")
       #expand out map here!! and then use akima::bilinear function
       
       #bigridx=rep(1:dim(image)[1]-0.5,times=dim(image)[2])
@@ -314,12 +317,10 @@ profoundMakeSkyGridADACSInPlace=function(image=NULL, objects=NULL, mask=NULL, bo
           temp_bi_skyRMS=.interp.2d(bigridx, bigridy, list(x=xseq, y=yseq, z=tempmat_skyRMS))
         }
       }else if(type=='bicubic'){
-        xxx = dim(image)[1];
-        yyy = dim(image)[2];
         temp_bi_sky = scratch[['scratchSKY']]
-        interpolateAkimaGrid(xseq,yseq,tempmat_sky,xxx,yyy,temp_bi_sky);
+        interpolateAkimaGrid(xseq,yseq,tempmat_sky,temp_bi_sky);
         temp_bi_skyRMS = scratch[['scratchSKYRMS']]
-        interpolateAkimaGrid(xseq,yseq,tempmat_skyRMS,xxx,yyy,temp_bi_skyRMS);
+        interpolateAkimaGrid(xseq,yseq,tempmat_skyRMS,temp_bi_skyRMS);
       }else{
         stop('type must be one of bilinear / bicubic !')
       }
