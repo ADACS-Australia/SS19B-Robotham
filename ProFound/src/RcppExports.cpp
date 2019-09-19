@@ -124,17 +124,15 @@ BEGIN_RCPP
 END_RCPP
 }
 // interpolateAkimaGrid
-void interpolateAkimaGrid(Rcpp::NumericVector xseq, Rcpp::NumericVector yseq, Rcpp::NumericMatrix tempmat_sky, const int xxx, const int yyy, Rcpp::NumericMatrix output);
-RcppExport SEXP _ProFound_interpolateAkimaGrid(SEXP xseqSEXP, SEXP yseqSEXP, SEXP tempmat_skySEXP, SEXP xxxSEXP, SEXP yyySEXP, SEXP outputSEXP) {
+void interpolateAkimaGrid(Rcpp::NumericVector xseq, Rcpp::NumericVector yseq, Rcpp::NumericMatrix tempmat_sky, Rcpp::NumericMatrix output);
+RcppExport SEXP _ProFound_interpolateAkimaGrid(SEXP xseqSEXP, SEXP yseqSEXP, SEXP tempmat_skySEXP, SEXP outputSEXP) {
 BEGIN_RCPP
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< Rcpp::NumericVector >::type xseq(xseqSEXP);
     Rcpp::traits::input_parameter< Rcpp::NumericVector >::type yseq(yseqSEXP);
     Rcpp::traits::input_parameter< Rcpp::NumericMatrix >::type tempmat_sky(tempmat_skySEXP);
-    Rcpp::traits::input_parameter< const int >::type xxx(xxxSEXP);
-    Rcpp::traits::input_parameter< const int >::type yyy(yyySEXP);
     Rcpp::traits::input_parameter< Rcpp::NumericMatrix >::type output(outputSEXP);
-    interpolateAkimaGrid(xseq, yseq, tempmat_sky, xxx, yyy, output);
+    interpolateAkimaGrid(xseq, yseq, tempmat_sky, output);
     return R_NilValue;
 END_RCPP
 }
@@ -212,7 +210,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"_ProFound_adacsFindSkyCellValuesBoxC", (DL_FUNC) &_ProFound_adacsFindSkyCellValuesBoxC, 11},
     {"_ProFound_adacsmagclip", (DL_FUNC) &_ProFound_adacsmagclip, 5},
     {"_ProFound_adacsmagclipV", (DL_FUNC) &_ProFound_adacsmagclipV, 5},
-    {"_ProFound_interpolateAkimaGrid", (DL_FUNC) &_ProFound_interpolateAkimaGrid, 6},
+    {"_ProFound_interpolateAkimaGrid", (DL_FUNC) &_ProFound_interpolateAkimaGrid, 4},
     {"_ProFound_water_cpp", (DL_FUNC) &_ProFound_water_cpp, 11},
     {"_ProFound_order_cpp", (DL_FUNC) &_ProFound_order_cpp, 1},
     {"_ProFound_tabulate_cpp", (DL_FUNC) &_ProFound_tabulate_cpp, 2},
