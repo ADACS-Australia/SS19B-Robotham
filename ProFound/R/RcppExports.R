@@ -33,6 +33,14 @@ interpolateAkimaGrid <- function(xseq, yseq, tempmat_sky, output) {
     invisible(.Call(`_ProFound_interpolateAkimaGrid`, xseq, yseq, tempmat_sky, output))
 }
 
+interpolateLinearGrid <- function(xseq, yseq, tempmat_sky, output) {
+    invisible(.Call(`_ProFound_interpolateLinearGrid`, xseq, yseq, tempmat_sky, output))
+}
+
+adacsMedianFromHistogram <- function(x) {
+    .Call(`_ProFound_adacsMedianFromHistogram`, x)
+}
+
 water_cpp <- function(image = 0L, nx = 1L, ny = 1L, abstol = 1, reltol = 0, cliptol = 1000000, ext = 1L, skycut = 0, pixcut = 1L, verbose = FALSE, Ncheck = 1000000L) {
     .Call(`_ProFound_water_cpp`, image, nx, ny, abstol, reltol, cliptol, ext, skycut, pixcut, verbose, Ncheck)
 }

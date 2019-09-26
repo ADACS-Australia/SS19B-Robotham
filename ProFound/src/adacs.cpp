@@ -103,7 +103,7 @@ Rcpp::NumericVector adacsFindSkyCellValuesC(Rcpp::NumericMatrix image, Rcpp::Nul
   const int32_t* iimask=NULL;
   if (mask.isNotNull()) {
     imask = Rcpp::as<Rcpp::IntegerMatrix>(mask);
-    iimask=INTEGER(objects.get());
+    iimask=INTEGER(mask.get());
   }
 
   int iboxadd1=0;
@@ -128,7 +128,15 @@ Rcpp::NumericVector adacsFindSkyCellValuesC(Rcpp::NumericMatrix image, Rcpp::Nul
       int ii=(j-1)*ncol+(ssrow-1);
       for (int i = ssrow; i <= eerow; i++,ii++) {
         // Count sky cells (sky cells are those NOT masked out and NOT objects)
-        if ((iiobjects!=NULL && iiobjects[ii]==0) && (iimask==NULL || iimask[ii]==0)) {
+        if ((iiobjects!=NULL)) {
+          if (iiobjects[ii]==0 && (iimask==NULL || iimask[ii]==0)) {
+            skyN++;
+          }
+        } else if (iimask!=NULL) {
+          if (iimask[ii]==0) {
+            skyN++;
+          }
+        } else {
           skyN++;
         }
       }
@@ -144,7 +152,15 @@ Rcpp::NumericVector adacsFindSkyCellValuesC(Rcpp::NumericMatrix image, Rcpp::Nul
   for (int j = sscol; j <= eecol; j++) {
     int ii=(j-1)*ncol+(ssrow-1);
     for (int i = ssrow; i <= eerow; i++,ii++) {
-      if ((iiobjects!=NULL && iiobjects[ii]==0) && (iimask==NULL || iimask[ii]==0)) {
+      if ((iiobjects!=NULL)) {
+        if (iiobjects[ii]==0 && (iimask==NULL || iimask[ii]==0)) {
+          vec[k++] = iiimage[ii];
+        }
+      } else if (iimask!=NULL) {
+        if (iimask[ii]==0) {
+          vec[k++] = iiimage[ii];
+        }
+      } else {
         vec[k++] = iiimage[ii];
       }
     }
@@ -158,6 +174,7 @@ Rcpp::IntegerVector adacsFindSkyCellValuesBoxC(Rcpp::NumericMatrix image, Rcpp::
                                             const double boxadd1, const double boxadd2,
                                             const int skypixmin, const int boxiters)
 {
+  // This method is only needed for plotting (and therefore only for testing)
   // R is 1 relative
   int iloc1 = (int)(loc1+0.5);
   int iloc2 = (int)(loc2+0.5);
@@ -634,4 +651,113 @@ void interpolateAkimaGrid(Rcpp::NumericVector xseq,Rcpp::NumericVector yseq,Rcpp
       output(i-1,j-1) = thisspline.InterpValue(y);
     }
   }
+}
+
+// [[Rcpp::export]]
+void interpolateLinearGrid(Rcpp::NumericVector xseq,Rcpp::NumericVector yseq,Rcpp::NumericMatrix tempmat_sky,Rcpp::NumericMatrix output) {
+  /*
+  * An Matrix element is at (row,col)
+  * The elements of a row stack vertically
+  * Any row I is to the right of row I-1
+  */
+  int myxnpts = output.nrow();
+  int myynpts = output.ncol();
+  const double_t* myx=REAL(xseq);
+  const double_t* myy=REAL(yseq);
+  int ncol=tempmat_sky.ncol();
+  int nrow=tempmat_sky.nrow();
+  
+  // For each vertical row 
+  for (int i = 1; i <= myxnpts; i++) {
+    // For a spline to interpolate vertically along the elements of the row
+    double_t x = -0.5+i;
+    // find the left and right index ibnto xseq
+    int left_index = -1;
+    int right_index = -1;
+    for (int ii = 1; ii < nrow; ii++) {
+      if (myx[ii-1] <= x && myx[ii] >= x) {
+        left_index = ii-1;
+        right_index = ii;
+        break;
+      }
+    }
+    
+    //Rcpp::Rcout << "x="<<x<<" xindex="<<left_index<<" "<<right_index<<"\n";
+    //Rcpp::Rcout << "x="<<x<<" xleft="<<myx[left_index]<<" "<<myx[right_index]<<"\n";
+    int top_index = -1;
+    int bottom_index = -1;
+    for (int j = 1; j < myynpts; j++) {
+      double y = -0.5+j;
+      for (int jj = 1; jj < ncol; jj++) {
+        if (myy[jj-1] <= y && myy[jj] >= y) {
+          top_index = jj-1;
+          bottom_index = jj;
+          // p1...p2
+          // .     .
+          // .     .
+          // p3...p4
+          double p1 = tempmat_sky(left_index,top_index);
+          double p2 = tempmat_sky(right_index,top_index);
+          double p3 = tempmat_sky(left_index,bottom_index);
+          double p4 = tempmat_sky(right_index,bottom_index);
+        
+          double xlambda = (x-myx[left_index])/(myx[right_index]-myx[left_index]);
+          double ylambda = (y-myy[top_index])/(myy[bottom_index]-myy[top_index]);
+          double ztop = p1 * (1.0-xlambda) + p2 * xlambda;
+          double zbottom = p3 * (1.0-xlambda) + p4 * xlambda;
+          output(i-1,j-1) = ztop * (1.0-ylambda) +zbottom * ylambda;
+          //Rcpp::Rcout << "y="<<y<<" yindex="<<top_index<<" "<<bottom_index<<" "<<p1<<" "<<p2<<" "<<p3<<" "<<p4<<" result="<<output(i-1,j-1)<<"\n";
+          break;
+        }
+      }
+    }
+  }
+}
+
+//==================================================================================
+// [[Rcpp::export]]
+double_t adacsMedianFromHistogram(Rcpp::NumericVector x) {
+  const double_t* iiix=REAL(x);
+  int size = x.size();
+  std::vector<double_t> myx (iiix, iiix+size);
+  double min=std::numeric_limits<double>::max();
+  double max=std::numeric_limits<double>::min();
+  int non_null_sample_count=0;
+  for (int i=0;i<size;i++)
+  {
+    if (!std::isnan(myx[i])) {
+      non_null_sample_count++;
+      min = MIN(min,myx[i]);
+      max = MAX(max,myx[i]);
+    }
+  }
+
+  // histogram
+  int levels = 16384;
+  std::vector<int> histogram;
+  histogram.resize(levels);
+  for (int i=0;i<levels;i++)
+  {
+    histogram[i] = 0;
+  }
+  double value_to_bin_index = (levels-1);
+  value_to_bin_index /= (max - min);
+  for (int i=0;i<size;i++)
+  {
+    if (!std::isnan(myx[i])) {
+      int index = (myx[i] - min)*value_to_bin_index;
+      histogram[index]++;
+    }
+  }
+  int count=0;
+  double median = min;
+  double binwidth = (max - min)/levels;
+  int target_count = non_null_sample_count/2;
+  for (int i=0;i<levels;i++) {
+    if (count>=target_count)
+     return median;
+    median += binwidth;
+    count += histogram[i];
+  }
+  return median;
 }

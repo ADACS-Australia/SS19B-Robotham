@@ -136,6 +136,30 @@ BEGIN_RCPP
     return R_NilValue;
 END_RCPP
 }
+// interpolateLinearGrid
+void interpolateLinearGrid(Rcpp::NumericVector xseq, Rcpp::NumericVector yseq, Rcpp::NumericMatrix tempmat_sky, Rcpp::NumericMatrix output);
+RcppExport SEXP _ProFound_interpolateLinearGrid(SEXP xseqSEXP, SEXP yseqSEXP, SEXP tempmat_skySEXP, SEXP outputSEXP) {
+BEGIN_RCPP
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< Rcpp::NumericVector >::type xseq(xseqSEXP);
+    Rcpp::traits::input_parameter< Rcpp::NumericVector >::type yseq(yseqSEXP);
+    Rcpp::traits::input_parameter< Rcpp::NumericMatrix >::type tempmat_sky(tempmat_skySEXP);
+    Rcpp::traits::input_parameter< Rcpp::NumericMatrix >::type output(outputSEXP);
+    interpolateLinearGrid(xseq, yseq, tempmat_sky, output);
+    return R_NilValue;
+END_RCPP
+}
+// adacsMedianFromHistogram
+double_t adacsMedianFromHistogram(Rcpp::NumericVector x);
+RcppExport SEXP _ProFound_adacsMedianFromHistogram(SEXP xSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< Rcpp::NumericVector >::type x(xSEXP);
+    rcpp_result_gen = Rcpp::wrap(adacsMedianFromHistogram(x));
+    return rcpp_result_gen;
+END_RCPP
+}
 // water_cpp
 Rcpp::IntegerMatrix water_cpp(Rcpp::NumericVector image, const int nx, const int ny, const double abstol, const double reltol, const double cliptol, const int ext, const double skycut, const int pixcut, const bool verbose, const int Ncheck);
 RcppExport SEXP _ProFound_water_cpp(SEXP imageSEXP, SEXP nxSEXP, SEXP nySEXP, SEXP abstolSEXP, SEXP reltolSEXP, SEXP cliptolSEXP, SEXP extSEXP, SEXP skycutSEXP, SEXP pixcutSEXP, SEXP verboseSEXP, SEXP NcheckSEXP) {
@@ -211,6 +235,8 @@ static const R_CallMethodDef CallEntries[] = {
     {"_ProFound_adacsmagclip", (DL_FUNC) &_ProFound_adacsmagclip, 5},
     {"_ProFound_adacsmagclipV", (DL_FUNC) &_ProFound_adacsmagclipV, 5},
     {"_ProFound_interpolateAkimaGrid", (DL_FUNC) &_ProFound_interpolateAkimaGrid, 4},
+    {"_ProFound_interpolateLinearGrid", (DL_FUNC) &_ProFound_interpolateLinearGrid, 4},
+    {"_ProFound_adacsMedianFromHistogram", (DL_FUNC) &_ProFound_adacsMedianFromHistogram, 1},
     {"_ProFound_water_cpp", (DL_FUNC) &_ProFound_water_cpp, 11},
     {"_ProFound_order_cpp", (DL_FUNC) &_ProFound_order_cpp, 1},
     {"_ProFound_tabulate_cpp", (DL_FUNC) &_ProFound_tabulate_cpp, 2},
