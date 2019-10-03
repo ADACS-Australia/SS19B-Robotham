@@ -1,11 +1,8 @@
-#!/bin/bash
-
 run_sky_grid() {
 	box_size=$1
 	image_scale_steps=$2
-	/usr/bin/time -l Rscript profile-sky-grid.r $box_size $image_scale_steps > tmp_$1_$2.txt 
-        cat tmp_$1_R2.txt \
-	  | sed -n 's/\[1\] "\(.*\)"/\1/p; s/.*maximum resident set size  \(.*\)/\1/p; s/.*Elapsed (wall clock) time (h:mm:ss or m:ss): \(.\)/\1/p' \
+	time -v Rscript profile-sky-grid.r $box_size $image_scale_steps \
+	  |& sed -n 's/\[1\] "\(.*\)"/\1/p; s/.*Maximum resident set size (kbytes): \(.*\)/\1/p; s/.*Elapsed (wall clock) time (h:mm:ss or m:ss): \(.\)/\1/p' \
 	  | sed -n '1N; N; s/\n/, /gp'
 }
 
