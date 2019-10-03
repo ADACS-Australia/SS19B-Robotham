@@ -4,17 +4,7 @@ profoundProFoundADACSInPlace=function(image=NULL, segim=NULL, objects=NULL, mask
                                       shiftloc = FALSE, paddim = TRUE, header=NULL, verbose=FALSE, plot=FALSE, stats=TRUE, rotstats=FALSE, boundstats=FALSE, nearstats=boundstats, groupstats=boundstats, group=NULL, groupby='segim_orig',
                                       offset=1, haralickstats=FALSE, sortcol="segID", decreasing=FALSE, lowmemory=FALSE, keepim=TRUE, watershed='ProFound', pixelcov=FALSE, deblendtype='fit', psf=NULL, fluxweight='sum',
                                       convtype = 'brute', convmode = 'extended', fluxtype='Raw', app_diam=1, Ndeblendlim=Inf, ...){
-  if (doclip) {
-    doRMNA <<- FALSE
-  } else {
-    doRMNA <<- TRUE
-  }
-  BOTH <<- 1
-  LO <<- 2
-  HI <<- 3
-  
-  AUTO <<- 1
-  SET <<- 2
+  initialiseGlobals(doclip)
   if(verbose){message('Running ProFound:')}
   timestart=proc.time()[3]
   
@@ -145,7 +135,12 @@ profoundProFoundADACSInPlace=function(image=NULL, segim=NULL, objects=NULL, mask
   
   # Create scratch matrices
   #scratch <- list(scratchN1=matrix(0.0,box[1],box[2]), scratchN2=matrix(0.0,box[1],box[2]),scratchI1=matrix(FALSE,box[1],box[2]), scratchI2=matrix(FALSE,box[1],box[2]))
-  scratch <- list(scratchN1=matrix(0.0,box[1],box[2]), scratchN2=matrix(0.0,box[1],box[2]),scratchI1=matrix(FALSE,box[1],box[2]), scratchI2=matrix(FALSE,box[1],box[2]), scratchSKY=matrix(0.0,dim(image)[1],dim(image)[2]),scratchSKYRMS=matrix(0.0,dim(image)[1],dim(image)[2]))
+  scratch <- list(scratchN1=matrix(0.0,box[1],box[2]), 
+                  scratchN2=matrix(0.0,box[1],box[2]),
+                  scratchI1=matrix(FALSE,box[1],box[2]),
+                  scratchI2=matrix(FALSE,box[1],box[2]),
+                  scratchSKY=matrix(0.0,dim(image)[1],dim(image)[2]),
+                  scratchSKYRMS=matrix(0.0,dim(image)[1],dim(image)[2]))
   
   #Check for user provided sky, and compute if missing:
   

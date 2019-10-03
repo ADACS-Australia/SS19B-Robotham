@@ -51,9 +51,9 @@ BEGIN_RCPP
     return R_NilValue;
 END_RCPP
 }
-// adacsFindSkyCellValuesC
-Rcpp::NumericVector adacsFindSkyCellValuesC(Rcpp::NumericMatrix image, Rcpp::Nullable<Rcpp::IntegerMatrix> objects, Rcpp::Nullable<Rcpp::IntegerMatrix> mask, const double loc1, const double loc2, const double box1, const double box2, const double boxadd1, const double boxadd2, const int skypixmin, const int boxiters);
-RcppExport SEXP _ProFound_adacsFindSkyCellValuesC(SEXP imageSEXP, SEXP objectsSEXP, SEXP maskSEXP, SEXP loc1SEXP, SEXP loc2SEXP, SEXP box1SEXP, SEXP box2SEXP, SEXP boxadd1SEXP, SEXP boxadd2SEXP, SEXP skypixminSEXP, SEXP boxitersSEXP) {
+// Cadacs_FindSkyCellValues
+Rcpp::NumericVector Cadacs_FindSkyCellValues(Rcpp::NumericMatrix image, Rcpp::Nullable<Rcpp::IntegerMatrix> objects, Rcpp::Nullable<Rcpp::IntegerMatrix> mask, const double loc1, const double loc2, const double box1, const double box2, const double boxadd1, const double boxadd2, const int skypixmin, const int boxiters);
+RcppExport SEXP _ProFound_Cadacs_FindSkyCellValues(SEXP imageSEXP, SEXP objectsSEXP, SEXP maskSEXP, SEXP loc1SEXP, SEXP loc2SEXP, SEXP box1SEXP, SEXP box2SEXP, SEXP boxadd1SEXP, SEXP boxadd2SEXP, SEXP skypixminSEXP, SEXP boxitersSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -68,13 +68,13 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< const double >::type boxadd2(boxadd2SEXP);
     Rcpp::traits::input_parameter< const int >::type skypixmin(skypixminSEXP);
     Rcpp::traits::input_parameter< const int >::type boxiters(boxitersSEXP);
-    rcpp_result_gen = Rcpp::wrap(adacsFindSkyCellValuesC(image, objects, mask, loc1, loc2, box1, box2, boxadd1, boxadd2, skypixmin, boxiters));
+    rcpp_result_gen = Rcpp::wrap(Cadacs_FindSkyCellValues(image, objects, mask, loc1, loc2, box1, box2, boxadd1, boxadd2, skypixmin, boxiters));
     return rcpp_result_gen;
 END_RCPP
 }
-// adacsFindSkyCellValuesBoxC
-Rcpp::IntegerVector adacsFindSkyCellValuesBoxC(Rcpp::NumericMatrix image, Rcpp::Nullable<Rcpp::IntegerMatrix> objects, Rcpp::Nullable<Rcpp::IntegerMatrix> mask, const double loc1, const double loc2, const double box1, const double box2, const double boxadd1, const double boxadd2, const int skypixmin, const int boxiters);
-RcppExport SEXP _ProFound_adacsFindSkyCellValuesBoxC(SEXP imageSEXP, SEXP objectsSEXP, SEXP maskSEXP, SEXP loc1SEXP, SEXP loc2SEXP, SEXP box1SEXP, SEXP box2SEXP, SEXP boxadd1SEXP, SEXP boxadd2SEXP, SEXP skypixminSEXP, SEXP boxitersSEXP) {
+// Cadacs_FindSkyCellValuesBoxC
+Rcpp::IntegerVector Cadacs_FindSkyCellValuesBoxC(Rcpp::NumericMatrix image, Rcpp::Nullable<Rcpp::IntegerMatrix> objects, Rcpp::Nullable<Rcpp::IntegerMatrix> mask, const double loc1, const double loc2, const double box1, const double box2, const double boxadd1, const double boxadd2, const int skypixmin, const int boxiters);
+RcppExport SEXP _ProFound_Cadacs_FindSkyCellValuesBoxC(SEXP imageSEXP, SEXP objectsSEXP, SEXP maskSEXP, SEXP loc1SEXP, SEXP loc2SEXP, SEXP box1SEXP, SEXP box2SEXP, SEXP boxadd1SEXP, SEXP boxadd2SEXP, SEXP skypixminSEXP, SEXP boxitersSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -89,7 +89,7 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< const double >::type boxadd2(boxadd2SEXP);
     Rcpp::traits::input_parameter< const int >::type skypixmin(skypixminSEXP);
     Rcpp::traits::input_parameter< const int >::type boxiters(boxitersSEXP);
-    rcpp_result_gen = Rcpp::wrap(adacsFindSkyCellValuesBoxC(image, objects, mask, loc1, loc2, box1, box2, boxadd1, boxadd2, skypixmin, boxiters));
+    rcpp_result_gen = Rcpp::wrap(Cadacs_FindSkyCellValuesBoxC(image, objects, mask, loc1, loc2, box1, box2, boxadd1, boxadd2, skypixmin, boxiters));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -108,9 +108,9 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
-// adacsmagclipV
-Rcpp::NumericVector adacsmagclipV(Rcpp::NumericVector x, const int sigma, const int clipiters, const double sigmasel, const int estimate);
-RcppExport SEXP _ProFound_adacsmagclipV(SEXP xSEXP, SEXP sigmaSEXP, SEXP clipitersSEXP, SEXP sigmaselSEXP, SEXP estimateSEXP) {
+// Cadacs_magclip
+Rcpp::NumericVector Cadacs_magclip(Rcpp::NumericVector x, const int sigma, const int clipiters, const double sigmasel, const int estimate);
+RcppExport SEXP _ProFound_Cadacs_magclip(SEXP xSEXP, SEXP sigmaSEXP, SEXP clipitersSEXP, SEXP sigmaselSEXP, SEXP estimateSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -119,7 +119,7 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< const int >::type clipiters(clipitersSEXP);
     Rcpp::traits::input_parameter< const double >::type sigmasel(sigmaselSEXP);
     Rcpp::traits::input_parameter< const int >::type estimate(estimateSEXP);
-    rcpp_result_gen = Rcpp::wrap(adacsmagclipV(x, sigma, clipiters, sigmasel, estimate));
+    rcpp_result_gen = Rcpp::wrap(Cadacs_magclip(x, sigma, clipiters, sigmasel, estimate));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -134,6 +134,139 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< Rcpp::NumericMatrix >::type output(outputSEXP);
     interpolateAkimaGrid(xseq, yseq, tempmat_sky, output);
     return R_NilValue;
+END_RCPP
+}
+// interpolateLinearGrid
+void interpolateLinearGrid(Rcpp::NumericVector xseq, Rcpp::NumericVector yseq, Rcpp::NumericMatrix tempmat_sky, Rcpp::NumericMatrix output);
+RcppExport SEXP _ProFound_interpolateLinearGrid(SEXP xseqSEXP, SEXP yseqSEXP, SEXP tempmat_skySEXP, SEXP outputSEXP) {
+BEGIN_RCPP
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< Rcpp::NumericVector >::type xseq(xseqSEXP);
+    Rcpp::traits::input_parameter< Rcpp::NumericVector >::type yseq(yseqSEXP);
+    Rcpp::traits::input_parameter< Rcpp::NumericMatrix >::type tempmat_sky(tempmat_skySEXP);
+    Rcpp::traits::input_parameter< Rcpp::NumericMatrix >::type output(outputSEXP);
+    interpolateLinearGrid(xseq, yseq, tempmat_sky, output);
+    return R_NilValue;
+END_RCPP
+}
+// Cadacs_quantile
+double_t Cadacs_quantile(Rcpp::NumericVector x, double quantile);
+RcppExport SEXP _ProFound_Cadacs_quantile(SEXP xSEXP, SEXP quantileSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< Rcpp::NumericVector >::type x(xSEXP);
+    Rcpp::traits::input_parameter< double >::type quantile(quantileSEXP);
+    rcpp_result_gen = Rcpp::wrap(Cadacs_quantile(x, quantile));
+    return rcpp_result_gen;
+END_RCPP
+}
+// Cadacs_quantileLO
+double_t Cadacs_quantileLO(Rcpp::NumericVector x, double quantile, const double offset);
+RcppExport SEXP _ProFound_Cadacs_quantileLO(SEXP xSEXP, SEXP quantileSEXP, SEXP offsetSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< Rcpp::NumericVector >::type x(xSEXP);
+    Rcpp::traits::input_parameter< double >::type quantile(quantileSEXP);
+    Rcpp::traits::input_parameter< const double >::type offset(offsetSEXP);
+    rcpp_result_gen = Rcpp::wrap(Cadacs_quantileLO(x, quantile, offset));
+    return rcpp_result_gen;
+END_RCPP
+}
+// Cadacs_mean
+double_t Cadacs_mean(Rcpp::NumericVector x);
+RcppExport SEXP _ProFound_Cadacs_mean(SEXP xSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< Rcpp::NumericVector >::type x(xSEXP);
+    rcpp_result_gen = Rcpp::wrap(Cadacs_mean(x));
+    return rcpp_result_gen;
+END_RCPP
+}
+// Cadacs_population_variance
+double_t Cadacs_population_variance(Rcpp::NumericVector x, const double offset);
+RcppExport SEXP _ProFound_Cadacs_population_variance(SEXP xSEXP, SEXP offsetSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< Rcpp::NumericVector >::type x(xSEXP);
+    Rcpp::traits::input_parameter< const double >::type offset(offsetSEXP);
+    rcpp_result_gen = Rcpp::wrap(Cadacs_population_variance(x, offset));
+    return rcpp_result_gen;
+END_RCPP
+}
+// Cadacs_sample_variance
+double_t Cadacs_sample_variance(Rcpp::NumericVector x, const double offset);
+RcppExport SEXP _ProFound_Cadacs_sample_variance(SEXP xSEXP, SEXP offsetSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< Rcpp::NumericVector >::type x(xSEXP);
+    Rcpp::traits::input_parameter< const double >::type offset(offsetSEXP);
+    rcpp_result_gen = Rcpp::wrap(Cadacs_sample_variance(x, offset));
+    return rcpp_result_gen;
+END_RCPP
+}
+// Cadacs_median
+double_t Cadacs_median(Rcpp::NumericVector x);
+RcppExport SEXP _ProFound_Cadacs_median(SEXP xSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< Rcpp::NumericVector >::type x(xSEXP);
+    rcpp_result_gen = Rcpp::wrap(Cadacs_median(x));
+    return rcpp_result_gen;
+END_RCPP
+}
+// adacsBothFromHistogram
+void adacsBothFromHistogram(Rcpp::NumericVector x, double quantile, Rcpp::NumericVector results);
+RcppExport SEXP _ProFound_adacsBothFromHistogram(SEXP xSEXP, SEXP quantileSEXP, SEXP resultsSEXP) {
+BEGIN_RCPP
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< Rcpp::NumericVector >::type x(xSEXP);
+    Rcpp::traits::input_parameter< double >::type quantile(quantileSEXP);
+    Rcpp::traits::input_parameter< Rcpp::NumericVector >::type results(resultsSEXP);
+    adacsBothFromHistogram(x, quantile, results);
+    return R_NilValue;
+END_RCPP
+}
+// adacsBothFromHistogramV2
+void adacsBothFromHistogramV2(Rcpp::NumericVector x, double quantile, Rcpp::NumericVector results);
+RcppExport SEXP _ProFound_adacsBothFromHistogramV2(SEXP xSEXP, SEXP quantileSEXP, SEXP resultsSEXP) {
+BEGIN_RCPP
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< Rcpp::NumericVector >::type x(xSEXP);
+    Rcpp::traits::input_parameter< double >::type quantile(quantileSEXP);
+    Rcpp::traits::input_parameter< Rcpp::NumericVector >::type results(resultsSEXP);
+    adacsBothFromHistogramV2(x, quantile, results);
+    return R_NilValue;
+END_RCPP
+}
+// Cadacs_SkyEstLoc
+Rcpp::NumericVector Cadacs_SkyEstLoc(Rcpp::NumericMatrix image, Rcpp::Nullable<Rcpp::IntegerMatrix> objects, Rcpp::Nullable<Rcpp::IntegerMatrix> mask, const double loc1, const double loc2, const double box1, const double box2, const double boxadd1, const double boxadd2, const int skypixmin, const int boxiters, const int doclip, const int skytype, const int skyRMStype, const double sigmasel);
+RcppExport SEXP _ProFound_Cadacs_SkyEstLoc(SEXP imageSEXP, SEXP objectsSEXP, SEXP maskSEXP, SEXP loc1SEXP, SEXP loc2SEXP, SEXP box1SEXP, SEXP box2SEXP, SEXP boxadd1SEXP, SEXP boxadd2SEXP, SEXP skypixminSEXP, SEXP boxitersSEXP, SEXP doclipSEXP, SEXP skytypeSEXP, SEXP skyRMStypeSEXP, SEXP sigmaselSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< Rcpp::NumericMatrix >::type image(imageSEXP);
+    Rcpp::traits::input_parameter< Rcpp::Nullable<Rcpp::IntegerMatrix> >::type objects(objectsSEXP);
+    Rcpp::traits::input_parameter< Rcpp::Nullable<Rcpp::IntegerMatrix> >::type mask(maskSEXP);
+    Rcpp::traits::input_parameter< const double >::type loc1(loc1SEXP);
+    Rcpp::traits::input_parameter< const double >::type loc2(loc2SEXP);
+    Rcpp::traits::input_parameter< const double >::type box1(box1SEXP);
+    Rcpp::traits::input_parameter< const double >::type box2(box2SEXP);
+    Rcpp::traits::input_parameter< const double >::type boxadd1(boxadd1SEXP);
+    Rcpp::traits::input_parameter< const double >::type boxadd2(boxadd2SEXP);
+    Rcpp::traits::input_parameter< const int >::type skypixmin(skypixminSEXP);
+    Rcpp::traits::input_parameter< const int >::type boxiters(boxitersSEXP);
+    Rcpp::traits::input_parameter< const int >::type doclip(doclipSEXP);
+    Rcpp::traits::input_parameter< const int >::type skytype(skytypeSEXP);
+    Rcpp::traits::input_parameter< const int >::type skyRMStype(skyRMStypeSEXP);
+    Rcpp::traits::input_parameter< const double >::type sigmasel(sigmaselSEXP);
+    rcpp_result_gen = Rcpp::wrap(Cadacs_SkyEstLoc(image, objects, mask, loc1, loc2, box1, box2, boxadd1, boxadd2, skypixmin, boxiters, doclip, skytype, skyRMStype, sigmasel));
+    return rcpp_result_gen;
 END_RCPP
 }
 // water_cpp
@@ -206,11 +339,21 @@ static const R_CallMethodDef CallEntries[] = {
     {"_ProFound_get_median", (DL_FUNC) &_ProFound_get_median, 2},
     {"_ProFound_subset_cpp_inplace", (DL_FUNC) &_ProFound_subset_cpp_inplace, 8},
     {"_ProFound_subset_cpp_inplaceI", (DL_FUNC) &_ProFound_subset_cpp_inplaceI, 8},
-    {"_ProFound_adacsFindSkyCellValuesC", (DL_FUNC) &_ProFound_adacsFindSkyCellValuesC, 11},
-    {"_ProFound_adacsFindSkyCellValuesBoxC", (DL_FUNC) &_ProFound_adacsFindSkyCellValuesBoxC, 11},
+    {"_ProFound_Cadacs_FindSkyCellValues", (DL_FUNC) &_ProFound_Cadacs_FindSkyCellValues, 11},
+    {"_ProFound_Cadacs_FindSkyCellValuesBoxC", (DL_FUNC) &_ProFound_Cadacs_FindSkyCellValuesBoxC, 11},
     {"_ProFound_adacsmagclip", (DL_FUNC) &_ProFound_adacsmagclip, 5},
-    {"_ProFound_adacsmagclipV", (DL_FUNC) &_ProFound_adacsmagclipV, 5},
+    {"_ProFound_Cadacs_magclip", (DL_FUNC) &_ProFound_Cadacs_magclip, 5},
     {"_ProFound_interpolateAkimaGrid", (DL_FUNC) &_ProFound_interpolateAkimaGrid, 4},
+    {"_ProFound_interpolateLinearGrid", (DL_FUNC) &_ProFound_interpolateLinearGrid, 4},
+    {"_ProFound_Cadacs_quantile", (DL_FUNC) &_ProFound_Cadacs_quantile, 2},
+    {"_ProFound_Cadacs_quantileLO", (DL_FUNC) &_ProFound_Cadacs_quantileLO, 3},
+    {"_ProFound_Cadacs_mean", (DL_FUNC) &_ProFound_Cadacs_mean, 1},
+    {"_ProFound_Cadacs_population_variance", (DL_FUNC) &_ProFound_Cadacs_population_variance, 2},
+    {"_ProFound_Cadacs_sample_variance", (DL_FUNC) &_ProFound_Cadacs_sample_variance, 2},
+    {"_ProFound_Cadacs_median", (DL_FUNC) &_ProFound_Cadacs_median, 1},
+    {"_ProFound_adacsBothFromHistogram", (DL_FUNC) &_ProFound_adacsBothFromHistogram, 3},
+    {"_ProFound_adacsBothFromHistogramV2", (DL_FUNC) &_ProFound_adacsBothFromHistogramV2, 3},
+    {"_ProFound_Cadacs_SkyEstLoc", (DL_FUNC) &_ProFound_Cadacs_SkyEstLoc, 15},
     {"_ProFound_water_cpp", (DL_FUNC) &_ProFound_water_cpp, 11},
     {"_ProFound_order_cpp", (DL_FUNC) &_ProFound_order_cpp, 1},
     {"_ProFound_tabulate_cpp", (DL_FUNC) &_ProFound_tabulate_cpp, 2},
