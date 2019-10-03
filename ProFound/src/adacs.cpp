@@ -26,6 +26,17 @@
 #include <algorithm>
 #include <cmath>
 #include <vector>
+#define adacs_BOTH 1
+#define adacs_LO 2
+#define adacs_HI 3
+#define adacs_SD 4
+
+#define adacs_AUTO 1
+#define adacs_SET 2
+
+#define adacs_MEDIAN 1
+#define adacs_MEAN 2
+#define adacs_MODE 3
 // An example of how to call an R function from C/C++
 // [[Rcpp::export]]
 double get_median(
@@ -76,7 +87,7 @@ void subset_cpp_inplaceI(
 #define ABS(a) (a)<0?(-a):(a)
 #define flt64Null -999
 // [[Rcpp::export]]
-Rcpp::NumericVector adacsFindSkyCellValuesC(Rcpp::NumericMatrix image, Rcpp::Nullable<Rcpp::IntegerMatrix> objects, Rcpp::Nullable<Rcpp::IntegerMatrix> mask,
+Rcpp::NumericVector Cadacs_FindSkyCellValues(Rcpp::NumericMatrix image, Rcpp::Nullable<Rcpp::IntegerMatrix> objects, Rcpp::Nullable<Rcpp::IntegerMatrix> mask,
     const double loc1, const double loc2,
     const double box1, const double box2,
     const double boxadd1, const double boxadd2,
@@ -168,7 +179,7 @@ Rcpp::NumericVector adacsFindSkyCellValuesC(Rcpp::NumericMatrix image, Rcpp::Nul
   return vec;
 }
 // [[Rcpp::export]]
-Rcpp::IntegerVector adacsFindSkyCellValuesBoxC(Rcpp::NumericMatrix image, Rcpp::Nullable<Rcpp::IntegerMatrix> objects, Rcpp::Nullable<Rcpp::IntegerMatrix> mask,
+Rcpp::IntegerVector Cadacs_FindSkyCellValuesBoxC(Rcpp::NumericMatrix image, Rcpp::Nullable<Rcpp::IntegerMatrix> objects, Rcpp::Nullable<Rcpp::IntegerMatrix> mask,
                                             const double loc1, const double loc2,
                                             const double box1, const double box2,
                                             const double boxadd1, const double boxadd2,
@@ -302,7 +313,7 @@ Rcpp::NumericVector adacsmagclip(Rcpp::NumericMatrix x, const int sigma, const i
   return vec;
 }
 // [[Rcpp::export]]
-Rcpp::NumericVector adacsmagclipV(Rcpp::NumericVector x, const int sigma, const int clipiters, const double sigmasel, const int estimate){
+Rcpp::NumericVector Cadacs_magclip(Rcpp::NumericVector x, const int sigma, const int clipiters, const double sigmasel, const int estimate){
   const double_t* iiix=REAL(x);
   int nb = x.length();
   std::vector<double_t> myx (iiix, iiix+nb);
@@ -716,7 +727,7 @@ void interpolateLinearGrid(Rcpp::NumericVector xseq,Rcpp::NumericVector yseq,Rcp
 
 //==================================================================================
 // [[Rcpp::export]]
-double_t adacsMedianFromHistogram(Rcpp::NumericVector x) {
+double_t Cadacs_quantile(Rcpp::NumericVector x, double quantile) {
   const double_t* iiix=REAL(x);
   int size = x.size();
   std::vector<double_t> myx (iiix, iiix+size);
@@ -731,7 +742,334 @@ double_t adacsMedianFromHistogram(Rcpp::NumericVector x) {
       max = MAX(max,myx[i]);
     }
   }
-
+  
+  // histogram
+  int levels = 16384;
+  std::vector<int> histogram;
+  histogram.resize(levels);
+  for (int i=0;i<levels;i++)
+  {
+    histogram[i] = 0;
+  }
+  double value_to_bin_index = (levels-1);
+  value_to_bin_index /= (max - min);
+  for (int i=0;i<size;i++)
+  {
+    if (!std::isnan(myx[i])) {
+      int index = (myx[i] - min)*value_to_bin_index;
+      histogram[index]++;
+    }
+  }
+  int count=0;
+  double quantileValue = min;
+  double binwidth = (max - min)/levels;
+  int target_count = non_null_sample_count*quantile;
+  for (int i=0;i<levels;i++) {
+    if (count>=target_count)
+      return quantileValue;
+    quantileValue += binwidth;
+    count += histogram[i];
+  }
+  return quantileValue;
+}
+// [[Rcpp::export]]
+double_t Cadacs_quantileLO(Rcpp::NumericVector x, double quantile, const double offset) {
+  // The population we want the quantile for is x-offset where x<offset
+  const double_t* iiix=REAL(x);
+  int size = x.size();
+  std::vector<double_t> myx (iiix, iiix+size);
+  double min=std::numeric_limits<double>::max();
+  double max=std::numeric_limits<double>::min();
+  int non_null_sample_count=0;
+  for (int i=0;i<size;i++)
+  {
+    if (!std::isnan(myx[i]) && myx[i]<offset) {
+      non_null_sample_count++;
+      min = MIN(min,myx[i]);
+      max = MAX(max,myx[i]);
+    }
+  }
+  Rcpp::Rcout << "offset,min,max "<<offset<<" "<<min<<" "<<max<<"\n";
+  
+  // histogram
+  int levels = 16384;
+  std::vector<int> histogram;
+  histogram.resize(levels);
+  for (int i=0;i<levels;i++)
+  {
+    histogram[i] = 0;
+  }
+  double value_to_bin_index = (levels-1);
+  value_to_bin_index /= (max - min);
+  for (int i=0;i<size;i++)
+  {
+    if (!std::isnan(myx[i]) && myx[i]<offset) {
+      int index = (myx[i] - min)*value_to_bin_index;
+      histogram[index]++;
+    }
+  }
+  int count=0;
+  double quantileValue = min-offset;
+  double binwidth = (max - min)/levels;
+  int target_count = non_null_sample_count*quantile;
+  for (int i=0;i<levels;i++) {
+    if (count>=target_count)
+      return quantileValue;
+    quantileValue += binwidth;
+    count += histogram[i];
+  }
+  return quantileValue;
+}
+double_t Cadacs_quantileHI(Rcpp::NumericVector x, double quantile, const double offset) {
+  // The population we want the quantile for is x-offset where x>offset
+  const double_t* iiix=REAL(x);
+  int size = x.size();
+  std::vector<double_t> myx (iiix, iiix+size);
+  double min=std::numeric_limits<double>::max();
+  double max=std::numeric_limits<double>::min();
+  int non_null_sample_count=0;
+  for (int i=0;i<size;i++)
+  {
+    if (!std::isnan(myx[i]) && myx[i]>offset) {
+      non_null_sample_count++;
+      min = MIN(min,myx[i]);
+      max = MAX(max,myx[i]);
+    }
+  }
+  
+  // histogram
+  int levels = 16384;
+  std::vector<int> histogram;
+  histogram.resize(levels);
+  for (int i=0;i<levels;i++)
+  {
+    histogram[i] = 0;
+  }
+  double value_to_bin_index = (levels-1);
+  value_to_bin_index /= (max - min);
+  for (int i=0;i<size;i++)
+  {
+    if (!std::isnan(myx[i]) && myx[i]>offset) {
+      int index = (myx[i] - min)*value_to_bin_index;
+      histogram[index]++;
+    }
+  }
+  int count=0;
+  double quantileValue = min-offset;
+  double binwidth = (max - min)/levels;
+  int target_count = non_null_sample_count*quantile;
+  for (int i=0;i<levels;i++) {
+    if (count>=target_count)
+      return quantileValue;
+    quantileValue += binwidth;
+    count += histogram[i];
+  }
+  return quantileValue;
+}
+// [[Rcpp::export]]
+double_t Cadacs_mean(Rcpp::NumericVector x) {
+  const double_t* myx=REAL(x);
+  int size = x.size();
+  double mean=0;
+  int non_null_sample_count=0;
+  for (int i=0;i<size;i++)
+  {
+    if (!std::isnan(myx[i])) {
+      non_null_sample_count++;
+      mean += myx[i];
+    }
+  }
+  if (non_null_sample_count==0)
+    return R_NaN;
+  return mean/non_null_sample_count;
+}
+// [[Rcpp::export]]
+double_t Cadacs_population_variance(Rcpp::NumericVector x, const double offset) {
+  const double_t* myx=REAL(x);
+  int size = x.size();
+  double v=0;
+  double sum=0;
+  double sum_sq=0;
+  int non_null_sample_count=0;
+  for (int i=0;i<size;i++)
+  {
+    if (!std::isnan(myx[i])) {
+      non_null_sample_count++;
+      v = myx[i]-offset;
+      sum += v;
+      v *= v;
+      sum_sq += v;
+    }
+  }
+  if (non_null_sample_count<=1)
+    return R_NaN;
+  double N=non_null_sample_count;
+  return sum_sq/N;
+}
+// [[Rcpp::export]]
+double_t Cadacs_sample_variance(Rcpp::NumericVector x, const double offset) {
+  const double_t* myx=REAL(x);
+  int size = x.size();
+  double v=0;
+  double sum=0;
+  double sum_sq=0;
+  int non_null_sample_count=0;
+  for (int i=0;i<size;i++)
+  {
+    if (!std::isnan(myx[i])) {
+      non_null_sample_count++;
+      v = myx[i]-offset;
+      sum += v;
+      v *= v;
+      sum_sq += v;
+    }
+  }
+  if (non_null_sample_count<=1)
+    return R_NaN;
+  double N=non_null_sample_count;
+  return (N*sum_sq - sum*sum)/(N * (N - 1));
+  //return sqrt(sum_sq);
+}
+// [[Rcpp::export]]
+double_t Cadacs_median(Rcpp::NumericVector x) {
+  return Cadacs_quantile(x, 0.5);
+}
+double_t Cadacs_mode(Rcpp::NumericVector x) {
+  const double_t* iiix=REAL(x);
+  int size = x.size();
+  std::vector<double_t> myx (iiix, iiix+size);
+  double min=std::numeric_limits<double>::max();
+  double max=std::numeric_limits<double>::min();
+  int non_null_sample_count=0;
+  for (int i=0;i<size;i++)
+  {
+    if (!std::isnan(myx[i])) {
+      non_null_sample_count++;
+      min = MIN(min,myx[i]);
+      max = MAX(max,myx[i]);
+    }
+  }
+  
+  // histogram
+  int levels = 16384*2;
+  std::vector<int> histogram;
+  histogram.resize(levels);
+  for (int i=0;i<levels;i++)
+  {
+    histogram[i] = 0;
+  }
+  double value_to_bin_index = (levels-1);
+  value_to_bin_index /= (max - min);
+  for (int i=0;i<size;i++)
+  {
+    if (!std::isnan(myx[i])) {
+      int index = (myx[i] - min)*value_to_bin_index;
+      histogram[index]++;
+    }
+  }
+  
+  double current_bin_lower=min;
+  double mode=current_bin_lower;
+  
+  double binwidth = (max - min)/levels;
+  int max_count = 0;
+  for (int i=0;i<levels;i++) {
+    if (histogram[i]>max_count)
+    {
+      max_count = histogram[i];
+      mode = current_bin_lower;
+    }
+    current_bin_lower += binwidth;
+  }
+  return mode;
+}
+// [[Rcpp::export]]
+void adacsBothFromHistogram(Rcpp::NumericVector x, double quantile,Rcpp::NumericVector results) {
+  Rcpp::Rcout << "quantile to seek "<<quantile<<"\n";
+  const double_t* iiix=REAL(x);
+  double_t* iresults=REAL(results);
+  int size = x.size();
+  std::vector<double_t> myx (iiix, iiix+size);
+  double min=std::numeric_limits<double>::max();
+  double max=std::numeric_limits<double>::min();
+  int non_null_sample_count=0;
+  for (int i=0;i<size;i++)
+  {
+    if (!std::isnan(myx[i])) {
+      non_null_sample_count++;
+      min = MIN(min,myx[i]);
+      max = MAX(max,myx[i]);
+    }
+  }
+  
+  // histogram
+  int levels = 16384*2;
+  std::vector<int> histogram;
+  histogram.resize(levels);
+  for (int i=0;i<levels;i++)
+  {
+    histogram[i] = 0;
+  }
+  double value_to_bin_index = (levels-1);
+  value_to_bin_index /= (max - min);
+  for (int i=0;i<size;i++)
+  {
+    if (!std::isnan(myx[i])) {
+      int index = (myx[i] - min)*value_to_bin_index;
+      histogram[index]++;
+    }
+  }
+  int count=0;
+  double median = min;
+  double binwidth = (max - min)/levels;
+  int target_count = non_null_sample_count*0.5;
+  for (int i=0;i<levels;i++) {
+    if (count>=target_count)
+    {
+      levels = i;
+      iresults[0] = median;
+      iresults[2] = binwidth;
+      break;
+    }
+    median += binwidth;
+    count += histogram[i];
+  }
+  
+  non_null_sample_count = count - histogram[levels];
+  count=0;
+  median = min;
+  target_count = non_null_sample_count*quantile;
+  for (int i=0;i<levels;i++) {
+    if (count>=target_count)
+    {
+      iresults[1] = median;
+      iresults[3] = binwidth;
+      break;
+    }
+    median += binwidth;
+    count += histogram[i];
+  }
+  Rcpp::Rcout << "result "<<iresults[1]<<" binwidth="<<binwidth<<"\n";
+}
+// [[Rcpp::export]]
+void adacsBothFromHistogramV2(Rcpp::NumericVector x, double quantile,Rcpp::NumericVector results) {
+  Rcpp::Rcout << "quantile to seek "<<quantile<<"\n";
+  const double_t* iiix=REAL(x);
+  double_t* iresults=REAL(results);
+  int size = x.size();
+  std::vector<double_t> myx (iiix, iiix+size);
+  double min=std::numeric_limits<double>::max();
+  double max=std::numeric_limits<double>::min();
+  int non_null_sample_count=0;
+  for (int i=0;i<size;i++)
+  {
+    if (!std::isnan(myx[i])) {
+      non_null_sample_count++;
+      min = MIN(min,myx[i]);
+      max = MAX(max,myx[i]);
+    }
+  }
+  
   // histogram
   int levels = 16384;
   std::vector<int> histogram;
@@ -752,12 +1090,101 @@ double_t adacsMedianFromHistogram(Rcpp::NumericVector x) {
   int count=0;
   double median = min;
   double binwidth = (max - min)/levels;
-  int target_count = non_null_sample_count/2;
+  int target_count = non_null_sample_count*0.5;
   for (int i=0;i<levels;i++) {
     if (count>=target_count)
-     return median;
+    {
+      iresults[0] = median;
+      iresults[2] = binwidth;
+      break;
+    }
     median += binwidth;
     count += histogram[i];
   }
-  return median;
+  
+  
+  non_null_sample_count = 0;
+  for (int i=0;i<levels;i++)
+  {
+    histogram[i] = 0;
+  }
+  max = median;
+  value_to_bin_index = (levels-1);
+  value_to_bin_index /= (max - min);
+  for (int i=0;i<size;i++)
+  {
+    if (!std::isnan(myx[i])) {
+      if (myx[i]<median) {
+        non_null_sample_count++;
+        int index = (myx[i] - min)*value_to_bin_index;
+        histogram[index]++;
+      }
+    }
+  }
+  count=0;
+  median = min;
+  binwidth = (max - min)/levels;
+  target_count = non_null_sample_count*quantile;
+  for (int i=0;i<levels;i++) {
+    if (count>=target_count)
+    {
+      iresults[1] = median-iresults[0];
+      iresults[3] = binwidth;
+      break;
+    }
+    median += binwidth;
+    count += histogram[i];
+  }
+}
+// [[Rcpp::export]]
+Rcpp::NumericVector Cadacs_SkyEstLoc(Rcpp::NumericMatrix image,Rcpp::Nullable<Rcpp::IntegerMatrix> objects,Rcpp::Nullable<Rcpp::IntegerMatrix> mask,
+                      const double loc1, const double loc2,
+                      const double box1, const double box2,
+                      const double boxadd1, const double boxadd2,
+                      const int skypixmin, const int boxiters,
+                      const int doclip, const int skytype, const int skyRMStype, const double sigmasel
+                      ) {
+  Rcpp::NumericVector select = Cadacs_FindSkyCellValues(image, objects, mask, loc1, loc2, box1, box2, boxadd1, boxadd2, skypixmin, boxiters);
+  Rcpp::NumericVector clip;
+  if(doclip) {
+    clip = Cadacs_magclip(select,adacs_AUTO,5,sigmasel,adacs_LO);
+  } else {
+    clip = select;
+  }
+  double skyloc=0.0;
+  switch (skytype) {
+  case adacs_MEDIAN:
+    skyloc = Cadacs_median(clip);
+    break;
+  case adacs_MEAN:
+    skyloc = Cadacs_mean(clip);
+    break;
+  case adacs_MODE:
+    skyloc = Cadacs_mode(clip);
+    break;
+  }
+  
+  double skyRMSloc=0.0;
+  switch (skyRMStype) {
+  case adacs_LO:
+    skyRMSloc = fabs(Cadacs_quantileLO(clip,R::pnorm(-sigmasel, 0.0, 1.0, 1, 0)*2, skyloc))/sigmasel;
+    break;
+  case adacs_HI:
+    skyRMSloc = fabs(Cadacs_quantileHI(clip,R::pnorm(-sigmasel, 0.0, 1.0, 1, 0)*2, skyloc))/sigmasel;
+    break;
+  case adacs_BOTH:
+  {
+    double lo=fabs(Cadacs_quantileLO(clip,R::pnorm(-sigmasel, 0.0, 1.0, 1, 0)*2, skyloc))/sigmasel;
+    double hi=fabs(Cadacs_quantileHI(clip,R::pnorm(-sigmasel, 0.0, 1.0, 1, 0)*2, skyloc))/sigmasel;
+    skyRMSloc = (lo+hi)/2;
+  }
+    break;
+  case adacs_SD:
+    skyRMSloc = sqrt(Cadacs_population_variance(clip, skyloc));
+    break;
+  }
+  Rcpp::NumericVector result(2);
+  result[0] = skyloc;
+  result[1] = skyRMSloc;
+  return result;
 }

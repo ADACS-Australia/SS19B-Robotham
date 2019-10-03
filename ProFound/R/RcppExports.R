@@ -13,20 +13,20 @@ subset_cpp_inplaceI <- function(image = 0L, scol = 1L, ecol = 1L, srow = 1L, ero
     invisible(.Call(`_ProFound_subset_cpp_inplaceI`, image, scol, ecol, srow, erow, coffset, roffset, oimage))
 }
 
-adacsFindSkyCellValuesC <- function(image, objects, mask, loc1, loc2, box1, box2, boxadd1, boxadd2, skypixmin, boxiters) {
-    .Call(`_ProFound_adacsFindSkyCellValuesC`, image, objects, mask, loc1, loc2, box1, box2, boxadd1, boxadd2, skypixmin, boxiters)
+Cadacs_FindSkyCellValues <- function(image, objects, mask, loc1, loc2, box1, box2, boxadd1, boxadd2, skypixmin, boxiters) {
+    .Call(`_ProFound_Cadacs_FindSkyCellValues`, image, objects, mask, loc1, loc2, box1, box2, boxadd1, boxadd2, skypixmin, boxiters)
 }
 
-adacsFindSkyCellValuesBoxC <- function(image, objects, mask, loc1, loc2, box1, box2, boxadd1, boxadd2, skypixmin, boxiters) {
-    .Call(`_ProFound_adacsFindSkyCellValuesBoxC`, image, objects, mask, loc1, loc2, box1, box2, boxadd1, boxadd2, skypixmin, boxiters)
+Cadacs_FindSkyCellValuesBoxC <- function(image, objects, mask, loc1, loc2, box1, box2, boxadd1, boxadd2, skypixmin, boxiters) {
+    .Call(`_ProFound_Cadacs_FindSkyCellValuesBoxC`, image, objects, mask, loc1, loc2, box1, box2, boxadd1, boxadd2, skypixmin, boxiters)
 }
 
 adacsmagclip <- function(x, sigma, clipiters, sigmasel, estimate) {
     .Call(`_ProFound_adacsmagclip`, x, sigma, clipiters, sigmasel, estimate)
 }
 
-adacsmagclipV <- function(x, sigma, clipiters, sigmasel, estimate) {
-    .Call(`_ProFound_adacsmagclipV`, x, sigma, clipiters, sigmasel, estimate)
+Cadacs_magclip <- function(x, sigma, clipiters, sigmasel, estimate) {
+    .Call(`_ProFound_Cadacs_magclip`, x, sigma, clipiters, sigmasel, estimate)
 }
 
 interpolateAkimaGrid <- function(xseq, yseq, tempmat_sky, output) {
@@ -37,8 +37,40 @@ interpolateLinearGrid <- function(xseq, yseq, tempmat_sky, output) {
     invisible(.Call(`_ProFound_interpolateLinearGrid`, xseq, yseq, tempmat_sky, output))
 }
 
-adacsMedianFromHistogram <- function(x) {
-    .Call(`_ProFound_adacsMedianFromHistogram`, x)
+Cadacs_quantile <- function(x, quantile) {
+    .Call(`_ProFound_Cadacs_quantile`, x, quantile)
+}
+
+Cadacs_quantileLO <- function(x, quantile, offset) {
+    .Call(`_ProFound_Cadacs_quantileLO`, x, quantile, offset)
+}
+
+Cadacs_mean <- function(x) {
+    .Call(`_ProFound_Cadacs_mean`, x)
+}
+
+Cadacs_population_variance <- function(x, offset) {
+    .Call(`_ProFound_Cadacs_population_variance`, x, offset)
+}
+
+Cadacs_sample_variance <- function(x, offset) {
+    .Call(`_ProFound_Cadacs_sample_variance`, x, offset)
+}
+
+Cadacs_median <- function(x) {
+    .Call(`_ProFound_Cadacs_median`, x)
+}
+
+adacsBothFromHistogram <- function(x, quantile, results) {
+    invisible(.Call(`_ProFound_adacsBothFromHistogram`, x, quantile, results))
+}
+
+adacsBothFromHistogramV2 <- function(x, quantile, results) {
+    invisible(.Call(`_ProFound_adacsBothFromHistogramV2`, x, quantile, results))
+}
+
+Cadacs_SkyEstLoc <- function(image, objects, mask, loc1, loc2, box1, box2, boxadd1, boxadd2, skypixmin, boxiters, doclip, skytype, skyRMStype, sigmasel) {
+    .Call(`_ProFound_Cadacs_SkyEstLoc`, image, objects, mask, loc1, loc2, box1, box2, boxadd1, boxadd2, skypixmin, boxiters, doclip, skytype, skyRMStype, sigmasel)
 }
 
 water_cpp <- function(image = 0L, nx = 1L, ny = 1L, abstol = 1, reltol = 0, cliptol = 1000000, ext = 1L, skycut = 0, pixcut = 1L, verbose = FALSE, Ncheck = 1000000L) {

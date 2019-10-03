@@ -1,9 +1,9 @@
 profoundSkyEstLocADACSInPlace=function(image=NULL, objects=NULL, mask=NULL, loc=dim(image)/2, box=c(101,101), skytype='median', skyRMStype='quanlo', sigmasel=1,
                                        skypixmin=prod(box)/2, boxadd=box/2, boxiters=0, doclip=TRUE, shiftloc = FALSE, paddim = TRUE, plot=FALSE, scratch=NULL, final=FALSE,...){
   if(!is.null(objects) | !is.null(mask)){
-    select = adacsFindSkyCellValuesC(image, objects, mask, loc[1], loc[2], box[1], box[2], boxadd[1], boxadd[2], skypixmin, boxiters)
+    select = Cadacs_FindSkyCellValues(image, objects, mask, loc[1], loc[2], box[1], box[2], boxadd[1], boxadd[2], skypixmin, boxiters)
     if (plot) {
-      newbox = adacsFindSkyCellValuesBoxC(image, objects, mask, loc[1], loc[2], box[1], box[2], boxadd[1], boxadd[2], skypixmin, boxiters)
+      newbox = Cadacs_FindSkyCellValuesBox(image, objects, mask, loc[1], loc[2], box[1], box[2], boxadd[1], boxadd[2], skypixmin, boxiters)
       box = c(newbox[1],newbox[2])
     }
   }else{
@@ -78,7 +78,57 @@ profoundSkyEstLocADACSInPlace=function(image=NULL, objects=NULL, mask=NULL, loc=
   
   return(invisible(list(val=c(skyloc, skyRMSloc))))
 }
-
+profoundSkyEstLocADACSInPlaceSimple=function(image=NULL, objects=NULL, mask=NULL, loc=dim(image)/2, box=c(101,101), skytype='median', skyRMStype='quanlo', sigmasel=1,
+                                       skypixmin=prod(box)/2, boxadd=box/2, boxiters=0, doclip=TRUE, scratch=NULL){
+  select = Cadacs_FindSkyCellValues(image, objects, mask, loc[1], loc[2], box[1], box[2], boxadd[1], boxadd[2], skypixmin, boxiters)
+  if(doclip) {
+    clip = Cadacs_magclip(select,AUTO,5,sigmasel,LO)
+  } else {
+    clip=select
+  }
+  
+  if(length(clip)==1){
+    if(is.na(clip)){
+      return(invisible(list(val=c(NA, NA))))
+    }
+  }
+  
+  if(skytype=='median'){
+    if('Rfast' %in% .packages()){
+      skyloc=try(Rfast::med(clip, na.rm=doRMNA), silent=TRUE)
+      if(class(skyloc)=='try-error'){skyloc=NA}
+    }else{
+      #skyloc=stats::median(clip, na.rm=doRMNA)
+      skyloc = Cadacs_median(clip)
+    }
+  }else if(skytype=='mean'){
+    skyloc=mean(clip, na.rm=doRMNA)
+  }else if(skytype=='mode'){
+    temp=density(clip, na.rm=doRMNA)
+    skyloc=temp$x[which.max(temp$y)]
+  }
+  
+  if(skyRMStype=='quanlo'){
+    temp=clip-skyloc
+    temp=temp[temp<0]
+    skyRMSloc=abs(Cadacs_quantile(temp,pnorm(-sigmasel)*2))/sigmasel
+  }else if(skyRMStype=='quanhi'){
+    temp=clip-skyloc
+    temp=temp[temp>0]
+    skyRMSloc=abs(Cadacs_quantile(temp, (pnorm(sigmasel)-0.5)*2))/sigmasel
+  }else if(skyRMStype=='quanboth'){
+    temp=clip-skyloc
+    templo=temp[temp<0]
+    temphi=temp[temp>0]
+    skyRMSloclo=abs(Cadacs_quantile(templo, pnorm(-sigmasel)*2))/sigmasel
+    skyRMSlochi=abs(Cadacs_quantile(temphi, (pnorm(sigmasel)-0.5)*2))/sigmasel
+    skyRMSloc=(skyRMSloclo+skyRMSlochi)/2
+  }else if(skyRMStype=='sd'){
+    skyRMSloc=sqrt(.varwt(clip, wt=rep(1,length(clip)), xcen=skyloc))
+  }
+  
+  return(invisible(list(val=c(skyloc, skyRMSloc))))
+}
 profoundMakeSkyGridADACSInPlace=function(image=NULL, objects=NULL, mask=NULL, box=c(100,100), grid=box, type='bicubic', skytype='median', skyRMStype='quanlo', sigmasel=1,
                                          skypixmin=prod(box)/2, boxadd=box/2, boxiters=0, doclip=TRUE, shiftloc = FALSE, paddim = TRUE, cores=1,
                                          scratch=NULL, final=FALSE){
@@ -112,21 +162,22 @@ profoundMakeSkyGridADACSInPlace=function(image=NULL, objects=NULL, mask=NULL, bo
     registerDoParallel(cores=cores)
     i=NULL
     tempsky=foreach(i = 1:dim(tempgrid)[1], .combine='rbind')%dopar%{
-      profoundSkyEstLocADACSInPlace(image=image, objects=objects, mask=mask, loc=as.numeric(tempgrid[i,]), box=box, skytype=skytype, skyRMStype=skyRMStype, sigmasel=sigmasel,
-                                    skypixmin=skypixmin, boxadd=boxadd, boxiters=boxiters, doclip=doclip, shiftloc=shiftloc, paddim=paddim, scratch=scratch, final=final)$val
+      profoundSkyEstLocADACSInPlaceSimple(image=image, objects=objects, mask=mask, loc=as.numeric(tempgrid[i,]), box=box, skytype=skytype, skyRMStype=skyRMStype, sigmasel=sigmasel,
+                                    skypixmin=skypixmin, boxadd=boxadd, boxiters=boxiters, doclip=doclip, scratch=scratch)$val
     }
     tempsky=rbind(tempsky)
   }else{
     tempsky=matrix(0,dim(tempgrid)[1],2)
     for(i in 1:dim(tempgrid)[1]){
-      tempsky[i,]=profoundSkyEstLocADACSInPlace(image=image, objects=objects, mask=mask, loc=as.numeric(tempgrid[i,]), box=box, skytype=skytype, skyRMStype=skyRMStype, sigmasel=sigmasel,
-                                                skypixmin=skypixmin, boxadd=boxadd, boxiters=boxiters, doclip=doclip, shiftloc=shiftloc, paddim=paddim, scratch=scratch, final=final)$val
+      #tempsky[i,]=profoundSkyEstLocADACSInPlaceSimple(image=image, objects=objects, mask=mask, loc=as.numeric(tempgrid[i,]), box=box, skytype=skytype, skyRMStype=skyRMStype, sigmasel=sigmasel,
+      #                                          skypixmin=skypixmin, boxadd=boxadd, boxiters=boxiters, doclip=doclip, scratch=scratch)$val
+      tempsky[i,]=Cadacs_SkyEstLoc(image=image, objects=objects, mask=mask, loc1=as.numeric(tempgrid[i,1]), loc2=as.numeric(tempgrid[i,2]), box1=box[1], box2=box[2], skytype=enumForKeyword(skytype), skyRMStype=enumForKeyword(skyRMStype), sigmasel=sigmasel,
+                                   skypixmin=skypixmin, boxadd1=boxadd[1], boxadd2=boxadd[2], boxiters=boxiters, doclip=doclip)
     }
   }
   
   # Take these boxcar median values as anchors for akima splines to expand to cover all the original cells
   
-  if (TRUE) {
     # replace any NaN's with the median of the "boxcar median values" and then pad by one cell with linearly extrapolated values
     xseq=c(-grid[1]/2,xseq,max(xseq)+grid[1])
     yseq=c(-grid[2]/2,yseq,max(yseq)+grid[2])
@@ -195,5 +246,4 @@ profoundMakeSkyGridADACSInPlace=function(image=NULL, objects=NULL, mask=NULL, bo
     }
     
     invisible(list(sky=temp_bi_sky, skyRMS=temp_bi_skyRMS))
-  }
 }

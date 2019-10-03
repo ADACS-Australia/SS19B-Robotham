@@ -11,12 +11,49 @@ initialiseGlobals = function(doclip)
     doRMNA <<- TRUE
   }
   # some enums
-  BOTH <<- 1
-  LO <<- 2
-  HI <<- 3
+  MEDIAN <<- 1  # 'median'
+  MEAN <<- 2    # 'mean'
+  MODE <<- 3    # 'mode'
+  
+  BOTH <<- 1  # 'quanboth'
+  LO <<- 2    # 'quanlo'
+  HI <<- 3    # 'quanhi'
+  SD <<- 4    # 'sd'
   
   AUTO <<- 1
   SET <<- 2
+}
+enumForKeyword = function(keyword)
+{
+  result = NULL
+  if (stri_detect_fixed(keyword,"median",case_insensitive=TRUE)) {
+    result = MEDIAN
+  }
+  if (stri_detect_fixed(keyword,"mean",case_insensitive=TRUE)) {
+    result = MEAN
+  }
+  if (stri_detect_fixed(keyword,"mode",case_insensitive=TRUE)) {
+    result = MODE
+  }
+  if (stri_detect_fixed(keyword,"quanboth",case_insensitive=TRUE)) {
+    result = BOTH
+  }
+  if (stri_detect_fixed(keyword,"quanlo",case_insensitive=TRUE)) {
+    result = LO
+  }
+  if (stri_detect_fixed(keyword,"quanhi",case_insensitive=TRUE)) {
+    result = HI
+  }
+  if (stri_detect_fixed(keyword,"sd",case_insensitive=TRUE)) {
+    result = SD
+  }
+  if (stri_detect_fixed(keyword,"auto",case_insensitive=TRUE)) {
+    result = AUTO
+  }
+  if (stri_detect_fixed(keyword,"set",case_insensitive=TRUE)) {
+    result = SET
+  }
+  invisible(result)
 }
 # This version assumes the input image is of type double
 magcutoutADACSInPlace = function (image, loc = dim(image)/2, box = c(101, 101), oimage=NULL) 
