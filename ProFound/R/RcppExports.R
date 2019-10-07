@@ -73,6 +73,10 @@ Cadacs_SkyEstLoc <- function(image, objects, mask, loc1, loc2, box1, box2, boxad
     .Call(`_ProFound_Cadacs_SkyEstLoc`, image, objects, mask, loc1, loc2, box1, box2, boxadd1, boxadd2, skypixmin, boxiters, doclip, skytype, skyRMStype, sigmasel)
 }
 
+Cadacs_MakeSkyGrid <- function(image, objects, mask, box1, box2, grid1, grid2, boxadd1, boxadd2, type, skypixmin, boxiters, doclip, skytype, skyRMStype, sigmasel, sky, skyRMS) {
+    invisible(.Call(`_ProFound_Cadacs_MakeSkyGrid`, image, objects, mask, box1, box2, grid1, grid2, boxadd1, boxadd2, type, skypixmin, boxiters, doclip, skytype, skyRMStype, sigmasel, sky, skyRMS))
+}
+
 water_cpp <- function(image = 0L, nx = 1L, ny = 1L, abstol = 1, reltol = 0, cliptol = 1000000, ext = 1L, skycut = 0, pixcut = 1L, verbose = FALSE, Ncheck = 1000000L) {
     .Call(`_ProFound_water_cpp`, image, nx, ny, abstol, reltol, cliptol, ext, skycut, pixcut, verbose, Ncheck)
 }

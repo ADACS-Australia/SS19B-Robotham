@@ -22,6 +22,10 @@ initialiseGlobals = function(doclip)
   
   AUTO <<- 1
   SET <<- 2
+  
+  CLASSIC_BILINEAR <<- 1
+  AKIMA_BILINEAR <<- 2
+  AKIMA_BICUBIC <<- 3
 }
 enumForKeyword = function(keyword)
 {
@@ -52,6 +56,15 @@ enumForKeyword = function(keyword)
   }
   if (stri_detect_fixed(keyword,"set",case_insensitive=TRUE)) {
     result = SET
+  }
+  if (stri_detect_fixed(keyword,"bilinear",case_insensitive=TRUE)) {
+    result = CLASSIC_BILINEAR
+  }
+  if (stri_detect_fixed(keyword,"akimabilinear",case_insensitive=TRUE)) {
+    result = AKIMA_BILINEAR
+  }
+  if (stri_detect_fixed(keyword,"bicubic",case_insensitive=TRUE)) {
+    result = AKIMA_BICUBIC
   }
   invisible(result)
 }
@@ -216,6 +229,22 @@ FindSkyCellValues=function(image=NULL, objects=NULL, mask=NULL, loc=dim(image)/2
     select=NA
   }
   invisible(list(select=select, box=box, skyN=skyN))
+}
+
+adacs_MakeSkyGrid=function(image=NULL, objects=NULL, mask=NULL, box=c(100,100), grid=box, type='bicubic', skytype='median', skyRMStype='quanlo', sigmasel=1,
+                                               skypixmin=prod(box)/2, boxadd=box/2, boxiters=0, doclip=TRUE, cores=1,
+                                               scratch=NULL) {
+  temp_bi_sky = scratch[['scratchSKY']]
+  temp_bi_skyRMS = scratch[['scratchSKYRMS']]
+  Cadacs_MakeSkyGrid(image, objects, mask,
+                     box[1], box[2],
+                     grid[1], grid[2],
+                     boxadd[1], boxadd[2],
+                     enumForKeyword(type), skypixmin, boxiters,
+                     doclip, enumForKeyword(skytype), enumForKeyword(skyRMStype), sigmasel,
+                     temp_bi_sky, temp_bi_skyRMS)
+  
+  invisible(list(sky=temp_bi_sky, skyRMS=temp_bi_skyRMS))
 }
 
 mlook=function(H,r)

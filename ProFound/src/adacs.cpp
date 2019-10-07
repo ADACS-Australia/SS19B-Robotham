@@ -37,6 +37,10 @@
 #define adacs_MEDIAN 1
 #define adacs_MEAN 2
 #define adacs_MODE 3
+
+#define adacs_CLASSIC_BILINEAR 1
+#define adacs_AKIMA_BILINEAR 2
+#define adacs_AKIMA_BICUBIC 3
 // An example of how to call an R function from C/C++
 // [[Rcpp::export]]
 double get_median(
@@ -624,6 +628,7 @@ void interpolateAkimaGrid(Rcpp::NumericVector xseq,Rcpp::NumericVector yseq,Rcpp
   const double_t* myy=REAL(yseq);
   int ncol=tempmat_sky.ncol();
   int nrow=tempmat_sky.nrow();
+  
   std::vector<double_t> xin,zin;
   std::vector<adacsakima> akimaCOL;
   xin.reserve(ncol);
@@ -789,7 +794,6 @@ double_t Cadacs_quantileLO(Rcpp::NumericVector x, double quantile, const double 
       max = MAX(max,myx[i]);
     }
   }
-  Rcpp::Rcout << "offset,min,max "<<offset<<" "<<min<<" "<<max<<"\n";
   
   // histogram
   int levels = 16384;
@@ -985,7 +989,6 @@ double_t Cadacs_mode(Rcpp::NumericVector x) {
 }
 // [[Rcpp::export]]
 void adacsBothFromHistogram(Rcpp::NumericVector x, double quantile,Rcpp::NumericVector results) {
-  Rcpp::Rcout << "quantile to seek "<<quantile<<"\n";
   const double_t* iiix=REAL(x);
   double_t* iresults=REAL(results);
   int size = x.size();
@@ -1049,11 +1052,9 @@ void adacsBothFromHistogram(Rcpp::NumericVector x, double quantile,Rcpp::Numeric
     median += binwidth;
     count += histogram[i];
   }
-  Rcpp::Rcout << "result "<<iresults[1]<<" binwidth="<<binwidth<<"\n";
 }
 // [[Rcpp::export]]
 void adacsBothFromHistogramV2(Rcpp::NumericVector x, double quantile,Rcpp::NumericVector results) {
-  Rcpp::Rcout << "quantile to seek "<<quantile<<"\n";
   const double_t* iiix=REAL(x);
   double_t* iresults=REAL(results);
   int size = x.size();
@@ -1187,4 +1188,128 @@ Rcpp::NumericVector Cadacs_SkyEstLoc(Rcpp::NumericMatrix image,Rcpp::Nullable<Rc
   result[0] = skyloc;
   result[1] = skyRMSloc;
   return result;
+}
+// [[Rcpp::export]]
+void Cadacs_MakeSkyGrid(Rcpp::NumericMatrix image,Rcpp::Nullable<Rcpp::IntegerMatrix> objects,Rcpp::Nullable<Rcpp::IntegerMatrix> mask,
+                                     const int box1, const int box2,
+                                     const int grid1, const int grid2,
+                                     const int boxadd1, const int boxadd2,
+                                     const int type, const int skypixmin, const int boxiters,
+                                     const int doclip, const int skytype, const int skyRMStype, const double sigmasel,
+                                     Rcpp::NumericMatrix sky, Rcpp::NumericMatrix skyRMS
+) {
+  // box MUST NOT be larger than the input image
+  double box[2] = {(double)box1, (double)box2};
+  if(box[0]>image.nrow())
+    box[0]=image.nrow();
+  if(box[1]>image.ncol())
+    box[1]=image.ncol();
+  
+  double grid[2] = {(double)grid1, (double)grid2};
+  if(grid[0]>image.nrow())
+    grid[0]=image.nrow();
+  if(grid[1]>image.ncol())
+    grid[1]=image.ncol();
+  
+  // tile over input image with tile size (grid) and no overlap
+  // xseq,yseq give the centres of each tile
+  int tile_nrows=0;
+  double x_tile_centre=grid[0]/2;
+  while (x_tile_centre<image.nrow()) {
+    tile_nrows++;
+    x_tile_centre += grid[0];
+  }
+  int tile_ncols=0;
+  double y_tile_centre=grid[1]/2;
+  while (y_tile_centre<image.ncol()) {
+    tile_ncols++;
+    y_tile_centre += grid[1];
+  }
+  
+  // add room for linearly extrapolated padding
+  tile_nrows += 2;
+  tile_ncols += 2;
+  
+  // Construct the vector of tile centroids
+  Rcpp::NumericVector xseq(tile_nrows);
+  Rcpp::NumericVector yseq(tile_ncols);
+  x_tile_centre=grid[0]/2 - grid[0];
+  for (int i=0; i<tile_nrows; i++) {
+    xseq[i] = x_tile_centre;
+    x_tile_centre += grid[0];
+  }
+  y_tile_centre=grid[1]/2 - grid[1];
+  for (int i=0; i<tile_ncols; i++) {
+    yseq[i] = y_tile_centre;
+    y_tile_centre += grid[1];
+  }
+  
+  Rcpp::NumericMatrix z_sky_centre(tile_nrows, tile_ncols);
+  Rcpp::NumericMatrix z_skyRMS_centre(tile_nrows, tile_ncols);
+  
+  x_tile_centre=grid[0]/2;
+  for (int i=1; i<tile_nrows-1; i++) {
+    x_tile_centre = xseq[i];
+    for (int j=1; j<tile_ncols-1; j++) {
+      y_tile_centre = yseq[j];
+      Rcpp::NumericVector z_tile_centre = Cadacs_SkyEstLoc(image,objects,mask,
+                                                           x_tile_centre, y_tile_centre,
+                                                           box1, box2,
+                                                           boxadd1, boxadd2,
+                                                           skypixmin, boxiters,
+                                                           doclip, skytype, skyRMStype, sigmasel);
+      z_sky_centre(i, j) = z_tile_centre[0];
+      z_skyRMS_centre(i, j) = z_tile_centre[1];
+    }
+  }
+  
+  // Padding
+  //work out the second point for linear extrapolation (the first one is at 1+1 and length(seq)-1)
+  int xstart=MIN(2,tile_nrows-2);
+  int ystart=MIN(2,tile_ncols-2);
+  int xend=MAX(tile_nrows-3,1);
+  int yend=MAX(tile_ncols-3,1);
+  for (int i=0; i<tile_nrows; i++) {
+    z_sky_centre(i,0) = z_sky_centre(i, 1)*2 - z_sky_centre(i, ystart);
+    z_sky_centre(i,tile_ncols-1) = z_sky_centre(i, tile_ncols-2)*2 - z_sky_centre(i, yend);
+  }
+  for (int i=0; i<tile_ncols; i++) {
+    z_sky_centre(0, i) = z_sky_centre(1, i)*2 - z_sky_centre(xstart, i);
+    z_sky_centre(tile_nrows-1, i) = z_sky_centre(tile_nrows-2, i)*2 - z_sky_centre(xend, i);
+  }
+  
+  for (int i=0; i<tile_nrows; i++) {
+    for (int j=0; j<tile_ncols; j++) {
+      //Rcpp::Rcout << "sky["<<i<<","<<j<<"]="<<z_sky_centre(i, j)<<"\n";
+    }
+  }
+  
+  // Now interpolate for each image cell
+  switch (type) {
+  case adacs_CLASSIC_BILINEAR:
+    interpolateLinearGrid(xseq, yseq, z_sky_centre, sky);
+    interpolateLinearGrid(xseq, yseq, z_skyRMS_centre, skyRMS);
+    break;
+  case adacs_AKIMA_BILINEAR:
+    break;
+  case adacs_AKIMA_BICUBIC:
+    interpolateAkimaGrid(xseq, yseq, z_sky_centre, sky);
+    interpolateAkimaGrid(xseq, yseq, z_skyRMS_centre, skyRMS);
+    break;
+  }
+  
+  // Apply mask
+  if (mask.isNotNull()) {
+    Rcpp::IntegerMatrix imask = Rcpp::as<Rcpp::IntegerMatrix>(mask);
+    int nrows=image.nrow();
+    int ncols=image.ncol();
+    for (int i=0; i<ncols; i++) {
+      for (int j=0; j<nrows; j++) {
+        if (imask(j, i)==1) {
+          sky(j, i) = R_NaN;
+          skyRMS(j, i) = R_NaN;
+        }
+      }
+    }
+  }
 }

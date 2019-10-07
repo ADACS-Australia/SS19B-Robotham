@@ -131,7 +131,7 @@ profoundSkyEstLocADACSInPlaceSimple=function(image=NULL, objects=NULL, mask=NULL
 }
 profoundMakeSkyGridADACSInPlace=function(image=NULL, objects=NULL, mask=NULL, box=c(100,100), grid=box, type='bicubic', skytype='median', skyRMStype='quanlo', sigmasel=1,
                                          skypixmin=prod(box)/2, boxadd=box/2, boxiters=0, doclip=TRUE, shiftloc = FALSE, paddim = TRUE, cores=1,
-                                         scratch=NULL, final=FALSE){
+                                         scratch=NULL){
   if(!requireNamespace("akima", quietly = TRUE)){
     if(type=='bicubic'){
       stop('The akima package is needed for bicubic interpolation to work. Please install it from CRAN.', call. = FALSE)
@@ -209,7 +209,6 @@ profoundMakeSkyGridADACSInPlace=function(image=NULL, objects=NULL, mask=NULL, bo
     tempmat_skyRMS[,length(yseq)]=tempmat_skyRMS[,length(yseq)-1]*2-tempmat_skyRMS[,yend]
     
     if(dim(tempmat_sky)[1]>1){
-      print(paste("TYPE=",type))
       if(type=='bilinear'){
         if(useakima){
           #bigridx=rep(1:dim(image)[1]-0.5,times=dim(image)[2])

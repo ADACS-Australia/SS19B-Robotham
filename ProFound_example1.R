@@ -1,5 +1,6 @@
 library(ProFound)
 library(bit)
+library(stringi)
 image=readFITS(system.file("extdata", 'VIKING/mystery_VIKING_Z.fits', package="ProFound"))$imDat
 #image=readFITS("../testdata/TAO_mockimages/image.1154.fits")$imDat
 #image=readFITS("../testdata/TAO_mockimages/image.2906.fits")$imDat
