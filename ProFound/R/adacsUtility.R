@@ -14,18 +14,24 @@ initialiseGlobals = function(doclip)
   MEDIAN <<- 1  # 'median'
   MEAN <<- 2    # 'mean'
   MODE <<- 3    # 'mode'
+  RMEDIAN <<- 4  # R version of 'median'
+  RMEAN <<- 5    # R version of 'mean'
+  RMODE <<- 6    # R version of 'mode'
   
   BOTH <<- 1  # 'quanboth'
   LO <<- 2    # 'quanlo'
   HI <<- 3    # 'quanhi'
   SD <<- 4    # 'sd'
+  RBOTH <<- 5  # R version of 'quanboth'
+  RLO <<- 6    # R version of 'quanlo'
+  RHI <<- 7    # R version of 'quanhi'
+  RSD <<- 8    # R version of 'sd'
   
   AUTO <<- 1
   SET <<- 2
   
   CLASSIC_BILINEAR <<- 1
-  AKIMA_BILINEAR <<- 2
-  AKIMA_BICUBIC <<- 3
+  AKIMA_BICUBIC <<- 2
 }
 enumForKeyword = function(keyword)
 {
@@ -39,6 +45,15 @@ enumForKeyword = function(keyword)
   if (stri_detect_fixed(keyword,"mode",case_insensitive=TRUE)) {
     result = MODE
   }
+  if (stri_detect_fixed(keyword,"rmedian",case_insensitive=TRUE)) {
+    result = RMEDIAN
+  }
+  if (stri_detect_fixed(keyword,"rmean",case_insensitive=TRUE)) {
+    result = RMEAN
+  }
+  if (stri_detect_fixed(keyword,"rmode",case_insensitive=TRUE)) {
+    result = RMODE
+  }
   if (stri_detect_fixed(keyword,"quanboth",case_insensitive=TRUE)) {
     result = BOTH
   }
@@ -51,6 +66,18 @@ enumForKeyword = function(keyword)
   if (stri_detect_fixed(keyword,"sd",case_insensitive=TRUE)) {
     result = SD
   }
+  if (stri_detect_fixed(keyword,"rquanboth",case_insensitive=TRUE)) {
+    result = RBOTH
+  }
+  if (stri_detect_fixed(keyword,"rquanlo",case_insensitive=TRUE)) {
+    result = RLO
+  }
+  if (stri_detect_fixed(keyword,"rquanhi",case_insensitive=TRUE)) {
+    result = RHI
+  }
+  if (stri_detect_fixed(keyword,"rsd",case_insensitive=TRUE)) {
+    result = RSD
+  }
   if (stri_detect_fixed(keyword,"auto",case_insensitive=TRUE)) {
     result = AUTO
   }
@@ -59,9 +86,6 @@ enumForKeyword = function(keyword)
   }
   if (stri_detect_fixed(keyword,"bilinear",case_insensitive=TRUE)) {
     result = CLASSIC_BILINEAR
-  }
-  if (stri_detect_fixed(keyword,"akimabilinear",case_insensitive=TRUE)) {
-    result = AKIMA_BILINEAR
   }
   if (stri_detect_fixed(keyword,"bicubic",case_insensitive=TRUE)) {
     result = AKIMA_BICUBIC

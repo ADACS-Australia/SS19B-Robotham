@@ -227,7 +227,6 @@ profoundProFoundADACSInPlace=function(image=NULL, segim=NULL, objects=NULL, mask
       if(verbose){message("Skipping making better sky map - User provided sky and sky RMS")}
     }
     
-      if (TRUE) {
     if(iters>0 | iterskyloc){
       if(verbose){message(paste('Calculating initial segstats -',round(proc.time()[3]-timestart,3),'sec'))}
       segstats=.profoundFluxCalcMin(image=image, segim=segim, mask=mask)
@@ -468,10 +467,6 @@ profoundProFoundADACSInPlace=function(image=NULL, segim=NULL, objects=NULL, mask
     
     if(verbose){message(paste('ProFound is finished! -',round(proc.time()[3]-timestart,3),'sec'))}
     output=list(segim=segim, segim_orig=segim_orig, objects=objects, objects_redo=objects_redo, sky=sky, skyRMS=skyRMS, image=image, mask=mask, segstats=segstats, Nseg=dim(segstats)[1], near=near, group=group, groupstats=groupstats, haralick=haralick, header=header, SBlim=SBlim, magzero=magzero, dim=dim(segim), pixscale=pixscale, skyarea=skyarea, gain=gain, call=call, date=date(), time=proc.time()[3]-timestart, ProFound.version=packageVersion('ProFound'), R.version=R.version)
-      }  else {
-        # just to keep it happy
-      output = list(image=image)
-    }
     }else{
     if(is.null(header)){header=NULL}
     if(keepim==FALSE){image=NULL; mask=NULL}

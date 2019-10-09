@@ -30,6 +30,10 @@
 #define adacs_LO 2
 #define adacs_HI 3
 #define adacs_SD 4
+#define adacs_RBOTH 5
+#define adacs_RLO 6
+#define adacs_RHI 7
+#define adacs_RSD 8
 
 #define adacs_AUTO 1
 #define adacs_SET 2
@@ -37,10 +41,12 @@
 #define adacs_MEDIAN 1
 #define adacs_MEAN 2
 #define adacs_MODE 3
+#define adacs_RMEDIAN 4
+#define adacs_RMEAN 5
+#define adacs_RMODE 6
 
 #define adacs_CLASSIC_BILINEAR 1
-#define adacs_AKIMA_BILINEAR 2
-#define adacs_AKIMA_BICUBIC 3
+#define adacs_AKIMA_BICUBIC 2
 // An example of how to call an R function from C/C++
 // [[Rcpp::export]]
 double get_median(
@@ -264,9 +270,6 @@ Rcpp::NumericVector adacsmagclip(Rcpp::NumericMatrix x, const int sigma, const i
   }
   std::sort (myx.begin(), myx.begin()+length, std::less<double_t>()); // ascending
   
-  for (int i=0;i<length;i++) {
-    //Rcpp::Rcout << "sorted["<<i<<"]="<<myx[i]<<"\n";
-  }
   int newlen = length;
   if(clipiters>0 & length>0){
     double sigcut=R::pnorm(sigmasel, 0.0, 1.0, 1, 0);
@@ -737,7 +740,7 @@ double_t Cadacs_quantile(Rcpp::NumericVector x, double quantile) {
   int size = x.size();
   std::vector<double_t> myx (iiix, iiix+size);
   double min=std::numeric_limits<double>::max();
-  double max=std::numeric_limits<double>::min();
+  double max=-min;
   int non_null_sample_count=0;
   for (int i=0;i<size;i++)
   {
@@ -746,6 +749,12 @@ double_t Cadacs_quantile(Rcpp::NumericVector x, double quantile) {
       min = MIN(min,myx[i]);
       max = MAX(max,myx[i]);
     }
+  }
+  
+  if (non_null_sample_count<1)
+    return R_NaN;
+  if (min==max) {
+    return min;
   }
   
   // histogram
@@ -784,7 +793,7 @@ double_t Cadacs_quantileLO(Rcpp::NumericVector x, double quantile, const double 
   int size = x.size();
   std::vector<double_t> myx (iiix, iiix+size);
   double min=std::numeric_limits<double>::max();
-  double max=std::numeric_limits<double>::min();
+  double max=-min;
   int non_null_sample_count=0;
   for (int i=0;i<size;i++)
   {
@@ -793,6 +802,12 @@ double_t Cadacs_quantileLO(Rcpp::NumericVector x, double quantile, const double 
       min = MIN(min,myx[i]);
       max = MAX(max,myx[i]);
     }
+  }
+  
+  if (non_null_sample_count<1)
+    return R_NaN;
+  if (min==max) {
+    return min;
   }
   
   // histogram
@@ -830,7 +845,7 @@ double_t Cadacs_quantileHI(Rcpp::NumericVector x, double quantile, const double 
   int size = x.size();
   std::vector<double_t> myx (iiix, iiix+size);
   double min=std::numeric_limits<double>::max();
-  double max=std::numeric_limits<double>::min();
+  double max=-min;
   int non_null_sample_count=0;
   for (int i=0;i<size;i++)
   {
@@ -839,6 +854,12 @@ double_t Cadacs_quantileHI(Rcpp::NumericVector x, double quantile, const double 
       min = MIN(min,myx[i]);
       max = MAX(max,myx[i]);
     }
+  }
+  
+  if (non_null_sample_count<1)
+    return R_NaN;
+  if (min==max) {
+    return min;
   }
   
   // histogram
@@ -1156,6 +1177,7 @@ Rcpp::NumericVector Cadacs_SkyEstLoc(Rcpp::NumericMatrix image,Rcpp::Nullable<Rc
   switch (skytype) {
   case adacs_MEDIAN:
     skyloc = Cadacs_median(clip);
+    //Rcpp::Rcout<<"Cadacs_SkyEstLoc clip.size="<<clip.size()<<" select.size="<<select.size()<<" skyloc="<<skyloc<<"\n";
     break;
   case adacs_MEAN:
     skyloc = Cadacs_mean(clip);
@@ -1169,6 +1191,7 @@ Rcpp::NumericVector Cadacs_SkyEstLoc(Rcpp::NumericMatrix image,Rcpp::Nullable<Rc
   switch (skyRMStype) {
   case adacs_LO:
     skyRMSloc = fabs(Cadacs_quantileLO(clip,R::pnorm(-sigmasel, 0.0, 1.0, 1, 0)*2, skyloc))/sigmasel;
+    //Rcpp::Rcout<<"Cadacs_SkyEstLoc clip.size="<<clip.size()<<" select.size="<<select.size()<<" skyRMSloc="<<skyRMSloc<<"\n";
     break;
   case adacs_HI:
     skyRMSloc = fabs(Cadacs_quantileHI(clip,R::pnorm(-sigmasel, 0.0, 1.0, 1, 0)*2, skyloc))/sigmasel;
@@ -1247,6 +1270,7 @@ void Cadacs_MakeSkyGrid(Rcpp::NumericMatrix image,Rcpp::Nullable<Rcpp::IntegerMa
   Rcpp::NumericMatrix z_sky_centre(tile_nrows, tile_ncols);
   Rcpp::NumericMatrix z_skyRMS_centre(tile_nrows, tile_ncols);
   
+  bool hasNaNs=false;
   x_tile_centre=grid[0]/2;
   for (int i=1; i<tile_nrows-1; i++) {
     x_tile_centre = xseq[i];
@@ -1258,8 +1282,36 @@ void Cadacs_MakeSkyGrid(Rcpp::NumericMatrix image,Rcpp::Nullable<Rcpp::IntegerMa
                                                            boxadd1, boxadd2,
                                                            skypixmin, boxiters,
                                                            doclip, skytype, skyRMStype, sigmasel);
+      if (std::isnan(z_tile_centre[0]) || std::isnan(z_tile_centre[1])) {
+        hasNaNs = true;
+      }
+        
       z_sky_centre(i, j) = z_tile_centre[0];
       z_skyRMS_centre(i, j) = z_tile_centre[1];
+    }
+  }
+  
+  if (hasNaNs) {
+    // Replace any NaN's with reasonable substitute
+    // initialise the pad area before getting the medians
+    for (int i=0; i<tile_nrows; i++) {
+      z_sky_centre(i,0) = R_NaN;
+      z_sky_centre(i,tile_ncols-1) = R_NaN;
+    }
+    for (int i=0; i<tile_ncols; i++) {
+      z_sky_centre(0, i) = R_NaN;
+      z_sky_centre(tile_nrows-1, i) = R_NaN;
+    }
+    double medianSkyCentre=Cadacs_median(z_sky_centre);
+    double medianSkyRMSCentre=Cadacs_median(z_skyRMS_centre);
+    // replace NaN's now
+    for (int i=1; i<tile_nrows-1; i++) {
+      for (int j=1; j<tile_ncols-1; j++) {
+        if (std::isnan(z_sky_centre(i, j)))
+          z_sky_centre(i, j) = medianSkyCentre;
+        if (std::isnan(z_skyRMS_centre(i, j)))
+          z_skyRMS_centre(i, j) = medianSkyRMSCentre;
+      }
     }
   }
   
@@ -1278,19 +1330,12 @@ void Cadacs_MakeSkyGrid(Rcpp::NumericMatrix image,Rcpp::Nullable<Rcpp::IntegerMa
     z_sky_centre(tile_nrows-1, i) = z_sky_centre(tile_nrows-2, i)*2 - z_sky_centre(xend, i);
   }
   
-  for (int i=0; i<tile_nrows; i++) {
-    for (int j=0; j<tile_ncols; j++) {
-      //Rcpp::Rcout << "sky["<<i<<","<<j<<"]="<<z_sky_centre(i, j)<<"\n";
-    }
-  }
-  
   // Now interpolate for each image cell
+  
   switch (type) {
   case adacs_CLASSIC_BILINEAR:
     interpolateLinearGrid(xseq, yseq, z_sky_centre, sky);
     interpolateLinearGrid(xseq, yseq, z_skyRMS_centre, skyRMS);
-    break;
-  case adacs_AKIMA_BILINEAR:
     break;
   case adacs_AKIMA_BICUBIC:
     interpolateAkimaGrid(xseq, yseq, z_sky_centre, sky);

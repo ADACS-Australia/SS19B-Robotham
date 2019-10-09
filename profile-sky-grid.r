@@ -1,17 +1,7 @@
 library(ProFound)
+library(stringi)
 doclip = TRUE
-if (doclip) {
-  doRMNA <<- FALSE
-} else {
-  doRMNA <<- TRUE
-}
-BOTH <<- 1
-LO <<- 2
-HI <<- 3
-
-AUTO <<- 1
-SET <<- 2
-
+initialiseGlobals(doclip)
 args = commandArgs(TRUE)
 box_size = as.integer(args[1])
 image_resize_steps = as.integer(args[2])
@@ -38,7 +28,7 @@ if (box[2]%%2 == 0) {
 scratch <- list(scratchN1=matrix(0.0,box[1],box[2]), scratchN2=matrix(0.0,box[1],box[2]),scratchI1=matrix(FALSE,box[1],box[2]), scratchI2=matrix(FALSE,box[1],box[2]), scratchSKY=matrix(0.0,dim(image)[1],dim(image)[2]),scratchSKYRMS=matrix(0.0,dim(image)[1],dim(image)[2]))
 
 #
-result = profoundMakeSkyGridADACSInPlace(image, box=c(box_size, box_size),scratch=scratch,final=FALSE)
+result = profoundMakeSkyGridADACSInPlace(image, box=c(box_size, box_size),scratch=scratch)
 
 image_width = dim(image)[1]
 image_height = dim(image)[2]
