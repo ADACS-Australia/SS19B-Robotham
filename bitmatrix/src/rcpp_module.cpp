@@ -1,17 +1,17 @@
 // -*- mode: C++; c-indent-level: 4; c-basic-offset: 4; indent-tabs-mode: nil; -*-
 //
-// rcpp_module.cpp: Rcpp R/C++ interface class library -- Rcpp Module examples
+// rcpp_module.cpp: Rcpp R/C++ interface class library -- Rcpp Module implementation for Bit Matrix
 //
-// Copyright (C) 2010 - 2012  Dirk Eddelbuettel and Romain Francois
+// Copyright (C) 2019 Ray Seikel
 //
-// This file is part of Rcpp.
+// This file is part of BitMatrix.
 //
-// Rcpp is free software: you can redistribute it and/or modify it
+// BitMatrix is free software: you can redistribute it and/or modify it
 // under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 2 of the License, or
 // (at your option) any later version.
 //
-// Rcpp is distributed in the hope that it will be useful, but
+// BitMatrix is distributed in the hope that it will be useful, but
 // WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
