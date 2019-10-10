@@ -92,6 +92,13 @@ enumForKeyword = function(keyword)
   }
   invisible(result)
 }
+# Helper function for Rcpp access
+adacs_mode = function(clip)
+{
+  temp=density(clip, na.rm=TRUE)
+  result=temp$x[which.max(temp$y)]
+  invisible(result)
+}
 # This version assumes the input image is of type double
 magcutoutADACSInPlace = function (image, loc = dim(image)/2, box = c(101, 101), oimage=NULL) 
 {

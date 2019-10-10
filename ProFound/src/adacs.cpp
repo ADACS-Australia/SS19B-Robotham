@@ -47,14 +47,9 @@
 
 #define adacs_CLASSIC_BILINEAR 1
 #define adacs_AKIMA_BICUBIC 2
-// An example of how to call an R function from C/C++
-// [[Rcpp::export]]
-double get_median(
-    Rcpp::NumericVector clip, Rcpp::Function median
-) {
-  Rcpp::NumericVector value=median(clip);
-  return value[0];
-}
+
+Rcpp::Environment stats("package:stats");
+Rcpp::Function quantile=stats["quantile"];
 // An image subsetting method that uses less memory
 // [[Rcpp::export]]
 void subset_cpp_inplace(
@@ -913,7 +908,6 @@ double_t Cadacs_population_variance(Rcpp::NumericVector x, const double offset) 
   const double_t* myx=REAL(x);
   int size = x.size();
   double v=0;
-  double sum=0;
   double sum_sq=0;
   int non_null_sample_count=0;
   for (int i=0;i<size;i++)
@@ -921,12 +915,11 @@ double_t Cadacs_population_variance(Rcpp::NumericVector x, const double offset) 
     if (!std::isnan(myx[i])) {
       non_null_sample_count++;
       v = myx[i]-offset;
-      sum += v;
       v *= v;
       sum_sq += v;
     }
   }
-  if (non_null_sample_count<=1)
+  if (non_null_sample_count==0)
     return R_NaN;
   double N=non_null_sample_count;
   return sum_sq/N;
@@ -1177,13 +1170,25 @@ Rcpp::NumericVector Cadacs_SkyEstLoc(Rcpp::NumericMatrix image,Rcpp::Nullable<Rc
   switch (skytype) {
   case adacs_MEDIAN:
     skyloc = Cadacs_median(clip);
-    //Rcpp::Rcout<<"Cadacs_SkyEstLoc clip.size="<<clip.size()<<" select.size="<<select.size()<<" skyloc="<<skyloc<<"\n";
+    break;
+  case adacs_RMEDIAN:
+    skyloc = Rcpp::median(clip);
     break;
   case adacs_MEAN:
     skyloc = Cadacs_mean(clip);
     break;
+  case adacs_RMEAN:
+    skyloc = Rcpp::mean(clip);
+    break;
   case adacs_MODE:
     skyloc = Cadacs_mode(clip);
+    break;
+  case adacs_RMODE:
+    {
+      Rcpp::Environment profound = Rcpp::Environment::namespace_env("ProFound");
+      Rcpp::Function mode= profound["adacs_mode"];
+      skyloc = REAL(mode(clip))[0];
+    }
     break;
   }
   
@@ -1191,20 +1196,79 @@ Rcpp::NumericVector Cadacs_SkyEstLoc(Rcpp::NumericMatrix image,Rcpp::Nullable<Rc
   switch (skyRMStype) {
   case adacs_LO:
     skyRMSloc = fabs(Cadacs_quantileLO(clip,R::pnorm(-sigmasel, 0.0, 1.0, 1, 0)*2, skyloc))/sigmasel;
-    //Rcpp::Rcout<<"Cadacs_SkyEstLoc clip.size="<<clip.size()<<" select.size="<<select.size()<<" skyRMSloc="<<skyRMSloc<<"\n";
+    break;
+  case adacs_RLO:
+  {
+    // Its ok to modify clip since its a fresh object and will not be used later
+    for (int i=0; i<clip.size();i++) {
+      clip[i] -= skyloc;
+      if (clip[i]>=0) {
+        clip[i] = R_NaN;
+      }
+    }
+    skyRMSloc = fabs(REAL(quantile(clip, R::pnorm(-sigmasel, 0.0, 1.0, 1, 0)*2, true))[0])/sigmasel;
+  }
     break;
   case adacs_HI:
-    skyRMSloc = fabs(Cadacs_quantileHI(clip,R::pnorm(-sigmasel, 0.0, 1.0, 1, 0)*2, skyloc))/sigmasel;
+    skyRMSloc = fabs(Cadacs_quantileHI(clip,(R::pnorm(sigmasel, 0.0, 1.0, 1, 0)-0.5)*2, skyloc))/sigmasel;
+    break;
+  case adacs_RHI:
+  {
+    // Its ok to modify clip since its a fresh object and will not be used later
+    for (int i=0; i<clip.size();i++) {
+    clip[i] -= skyloc;
+    if (clip[i]<=0) {
+      clip[i] = R_NaN;
+    }
+  }
+    skyRMSloc = fabs(REAL(quantile(clip, (R::pnorm(sigmasel, 0.0, 1.0, 1, 0)-0.5)*2, true))[0])/sigmasel;
+  }
     break;
   case adacs_BOTH:
   {
     double lo=fabs(Cadacs_quantileLO(clip,R::pnorm(-sigmasel, 0.0, 1.0, 1, 0)*2, skyloc))/sigmasel;
-    double hi=fabs(Cadacs_quantileHI(clip,R::pnorm(-sigmasel, 0.0, 1.0, 1, 0)*2, skyloc))/sigmasel;
+    double hi=fabs(Cadacs_quantileHI(clip,(R::pnorm(sigmasel, 0.0, 1.0, 1, 0)-0.5)*2, skyloc))/sigmasel;
+    skyRMSloc = (lo+hi)/2;
+  }
+    break;
+  case adacs_RBOTH:
+  {
+    
+    // Its ok to modify clip since its a fresh object and will not be used later
+    for (int i=0; i<clip.size();i++) {
+      clip[i] -= skyloc;
+    }
+    Rcpp::DoubleVector templo(clip.size());
+    for (int i=0; i<clip.size();i++) {
+      templo[i] = clip[i];
+      if (templo[i]>=0) {
+        templo[i] = R_NaN;
+      }
+    }
+    Rcpp::DoubleVector temphi(clip.size());
+    for (int i=0; i<clip.size();i++) {
+      temphi[i] = clip[i];
+      if (temphi[i]<=0) {
+        temphi[i] = R_NaN;
+      }
+    }
+    
+    double lo = fabs(REAL(quantile(templo, R::pnorm(-sigmasel, 0.0, 1.0, 1, 0)*2, true))[0])/sigmasel;
+    double hi = fabs(REAL(quantile(temphi, (R::pnorm(sigmasel, 0.0, 1.0, 1, 0)-0.5)*2, true))[0])/sigmasel;
     skyRMSloc = (lo+hi)/2;
   }
     break;
   case adacs_SD:
     skyRMSloc = sqrt(Cadacs_population_variance(clip, skyloc));
+    break;
+  case adacs_RSD:
+  {
+    // Its ok to modify clip since its a fresh object and will not be used later
+    for (int i=0; i<clip.size();i++) {
+      clip[i] -= skyloc;
+    }
+    skyRMSloc = sqrt(Rcpp::var(clip));
+  }
     break;
   }
   Rcpp::NumericVector result(2);
