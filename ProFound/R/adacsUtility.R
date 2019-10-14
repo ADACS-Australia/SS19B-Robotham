@@ -262,12 +262,13 @@ FindSkyCellValues=function(image=NULL, objects=NULL, mask=NULL, loc=dim(image)/2
   invisible(list(select=select, box=box, skyN=skyN))
 }
 
-adacs_MakeSkyGrid=function(image=NULL, objects=NULL, mask=NULL, box=c(100,100), grid=box, type='bicubic', skytype='median', skyRMStype='quanlo', sigmasel=1,
+adacs_MakeSkyGrid=function(image=NULL, objects=NULL, bmask=NULL, box=c(100,100), grid=box, type='bicubic', skytype='median', skyRMStype='quanlo', sigmasel=1,
                                                skypixmin=prod(box)/2, boxadd=box/2, boxiters=0, doclip=TRUE, cores=1,
                                                scratch=NULL) {
   temp_bi_sky = scratch[['scratchSKY']]
   temp_bi_skyRMS = scratch[['scratchSKYRMS']]
-  Cadacs_MakeSkyGrid(image, objects, mask,
+  adacs<-new(Adacs)
+  adacs$Cadacs_MakeSkyGrid(image, objects, bmask, 
                      box[1], box[2],
                      grid[1], grid[2],
                      boxadd[1], boxadd[2],

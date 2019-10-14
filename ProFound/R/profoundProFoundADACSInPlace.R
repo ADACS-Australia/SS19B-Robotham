@@ -85,7 +85,7 @@ profoundProFoundADACSInPlace=function(image=NULL, segim=NULL, objects=NULL, mask
   if(verbose){message(paste('Supplied image is',dim(image)[1],'x',dim(image)[2],'pixels'))}
   
   #Treat image NAs as masked regions:
-  
+  bmask=new(BitMatrix,dim(image)[1],dim(image)[2])
   badpix=NULL
   if(!is.null(mask)){
     mask=mask*1L #Looks silly, but this ensures a logical mask becomes integer.
@@ -104,6 +104,13 @@ profoundProFoundADACSInPlace=function(image=NULL, segim=NULL, objects=NULL, mask
       mask=matrix(0L,dim(image)[1],dim(image)[2])
       badpix=which(is.na(image))
       mask[badpix]=1L
+      
+      {
+      # Equivalent using BitMatrix
+      bmask$maskNaN(image)
+      image[bmask$trues()] = 0
+      }
+      
       image[badpix]=0
     }
   }
@@ -113,7 +120,6 @@ profoundProFoundADACSInPlace=function(image=NULL, segim=NULL, objects=NULL, mask
   #}
   
   #Get the pixel scale, if possible and not provided:
-  
   if(missing(pixscale) & !is.null(header)){
     pixscale=getpixscale(header)
     if(verbose){message(paste('Extracted pixel scale from header provided:',round(pixscale,3),'asec/pixel'))}
@@ -149,7 +155,7 @@ profoundProFoundADACSInPlace=function(image=NULL, segim=NULL, objects=NULL, mask
   
   if((hassky==FALSE | hasskyRMS==FALSE) & is.null(segim)){
     if(verbose){message(paste('Making initial sky map -',round(proc.time()[3]-timestart,3),'sec'))}
-    roughsky=adacs_MakeSkyGrid(image=image, objects=objects, mask=mask, box=box, grid=grid, boxadd=boxadd,
+    roughsky=adacs_MakeSkyGrid(image=image, objects=objects, bmask=bmask, box=box, grid=grid, boxadd=boxadd,
                                              type=type, skytype=skytype, skyRMStype=skyRMStype, sigmasel=sigmasel, 
                                              skypixmin=skypixmin, boxiters=0, doclip=doclip, scratch=scratch)
     if(roughpedestal){
@@ -175,7 +181,7 @@ profoundProFoundADACSInPlace=function(image=NULL, segim=NULL, objects=NULL, mask
   
   if(is.null(segim)){
     if(verbose){message(paste('Making initial segmentation image -',round(proc.time()[3]-timestart,3),'sec'))}
-    segim=profoundMakeSegimADACSInPlace(image=image, objects=objects, mask=mask, sky=sky, skyRMS=skyRMS,
+    segim=adacs_MakeSegim(image=image, objects=objects, mask=mask, sky=sky, skyRMS=skyRMS,
                             tolerance=tolerance, ext=ext, reltol=reltol, cliptol=cliptol, sigma=sigma, smooth=smooth, pixcut=pixcut, skycut=skycut, SBlim=SBlim,
                             magzero=magzero, pixscale=pixscale, verbose=verbose, watershed=watershed, plot=FALSE)
     objects=segim$objects
@@ -189,12 +195,12 @@ profoundProFoundADACSInPlace=function(image=NULL, segim=NULL, objects=NULL, mask
       if (TRUE) {
       if(redosky){
         if(verbose){message(paste('Doing initial aggressive dilation -',round(proc.time()[3]-timestart,3),'sec'))}
-        objects_redo=profoundMakeSegimDilateADACSInPlace(segim=objects, size=redoskysize, shape=shape, sky=sky, verbose=verbose, plot=FALSE, stats=FALSE, rotstats=FALSE)$objects
+        objects_redo=adacs_MakeSegimDilate(segim=objects, size=redoskysize, shape=shape, sky=sky, verbose=verbose, plot=FALSE, stats=FALSE, rotstats=FALSE)$objects
       }else{
         objects_redo=objects
       }
       if(verbose){message(paste('Making better sky map -',round(proc.time()[3]-timestart,3),'sec'))}
-      bettersky=adacs_MakeSkyGrid(image=image, objects=objects_redo, mask=mask, box=box, grid=grid, boxadd=boxadd,
+      bettersky=adacs_MakeSkyGrid(image=image, objects=objects_redo, bmask=bmask, box=box, grid=grid, boxadd=boxadd,
                                                 type=type, skytype=skytype, skyRMStype=skyRMStype, sigmasel=sigmasel,
                                                 skypixmin=skypixmin, boxiters=boxiters, doclip=doclip, scratch=scratch)
       if(hassky==FALSE){
@@ -260,7 +266,7 @@ profoundProFoundADACSInPlace=function(image=NULL, segim=NULL, objects=NULL, mask
         
       for(i in 1:(iters)){
         if(verbose){message(paste('Iteration',i,'of',iters,'-',round(proc.time()[3]-timestart,3),'sec'))}
-        segim_new=profoundMakeSegimDilateADACSInPlace(segim=segim, expand=expand_segID, size=size, shape=shape, verbose=verbose, plot=FALSE, stats=FALSE, rotstats=FALSE)$segim
+        segim_new=adacs_MakeSegimDilate(segim=segim, expand=expand_segID, size=size, shape=shape, verbose=verbose, plot=FALSE, stats=FALSE, rotstats=FALSE)$segim
         segstats_new=.profoundFluxCalcMin(image=image, segim=segim_new, mask=mask)
         SBnew=(segstats_new$flux - segstats$flux) / (segstats_new$N100 - segstats$N100)
         fluxgrowth = (segstats_new$flux - skystats * segstats_new$N100) / (segstats$flux - skystats * segstats$N100) #account for flux growth
@@ -281,7 +287,7 @@ profoundProFoundADACSInPlace=function(image=NULL, segim=NULL, objects=NULL, mask
       }
       
       if(iterskyloc){
-        segim_skyloc=profoundMakeSegimDilateADACSInPlace(segim=segim, size=size, shape=shape, verbose=verbose, plot=FALSE, stats=FALSE, rotstats=FALSE)$segim
+        segim_skyloc=adacs_MakeSegimDilate(segim=segim, size=size, shape=shape, verbose=verbose, plot=FALSE, stats=FALSE, rotstats=FALSE)$segim
         segstats_new=.profoundFluxCalcMin(image=image, segim=segim_skyloc, mask=mask)
         skyseg_mean=(segstats_new$flux-segstats$flux)/(segstats_new$N100-segstats$N100)
         skyseg_mean[!is.finite(skyseg_mean)]=0
@@ -303,9 +309,9 @@ profoundProFoundADACSInPlace=function(image=NULL, segim=NULL, objects=NULL, mask
     if(redosky){
       if(redoskysize %% 2 == 0){redoskysize=redoskysize+1}
       if(verbose){message(paste('Doing final aggressive dilation -',round(proc.time()[3]-timestart,3),'sec'))}
-      objects_redo=profoundMakeSegimDilateADACSInPlace(segim=objects, mask=mask, size=redoskysize, shape=shape, sky=sky, verbose=verbose, plot=FALSE, stats=FALSE, rotstats=FALSE)$objects
+      objects_redo=adacs_MakeSegimDilate(segim=objects, mask=mask, size=redoskysize, shape=shape, sky=sky, verbose=verbose, plot=FALSE, stats=FALSE, rotstats=FALSE)$objects
       if(verbose){message(paste('Making final sky map -',round(proc.time()[3]-timestart,3),'sec'))}
-      sky=adacs_MakeSkyGrid(image=image, objects=objects_redo, mask=mask, box=box, grid=grid, boxadd=boxadd,
+      sky=adacs_MakeSkyGrid(image=image, objects=objects_redo, bmask=bmask, box=box, grid=grid, boxadd=boxadd,
                                           type=type, skytype=skytype, skyRMStype=skyRMStype, sigmasel=sigmasel,
                                           skypixmin=skypixmin, boxiters=boxiters, doclip=doclip, scratch=scratch)
       skyRMS=sky$skyRMS
