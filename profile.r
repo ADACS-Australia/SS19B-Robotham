@@ -1,5 +1,6 @@
 library(ProFound)
 library(stringi)
+library(bitmatrix)
 
 args = commandArgs(TRUE)
 box_size = as.integer(args[1])
@@ -16,6 +17,7 @@ for (i in seq_along(seq_len(image_resize_steps))) {
 		image = rbind(image, image)
 	}
 }
+image[1,1] = NaN
 
 # Go, go, go!
 if (what == 'profound-original') {
@@ -43,6 +45,8 @@ if (what == 'profound-original') {
 	)
 	initialiseGlobals(TRUE)
 	result = profoundMakeSkyGridADACSInPlace(image, box=box, scratch=scratch)
+} else {
+        print(paste("Option not recognised: ",what))
 }
 
 # Report and good bye

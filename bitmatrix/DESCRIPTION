@@ -1,11 +1,12 @@
 Package: bitmatrix
 Type: Package
-Title: Memory Efficient Logical Matrix class
+Title: What the Package Does in One 'Title Case' Line
 Version: 1.0
-Date: 2019-10-10
+Date: 2019-10-14
 Author: Ray Seikel
 Maintainer: Ray Seikel <rseikel@bigpond.com>
-Description: Packs a 2D array of Logical values into int32 words for memory efficient representation of Logical Matrices.
+Description: One paragraph description of what the package does as one
+        or more full sentences.
 License: GPL (>= 2)
 Imports: methods, Rcpp (>= 1.0.2)
 LinkingTo: Rcpp

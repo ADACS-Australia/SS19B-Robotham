@@ -14,9 +14,9 @@
   package, including the most important functions.
 }
 \author{
-Your Name, email optional.
+Ray Seikel, email optional.
 
-Maintainer: Your Name <your@email.com>
+Maintainer: Ray Seikel <rseikel@bigpond.com>
 }
 \references{
   This optional section can contain literature or other references for
