@@ -21,7 +21,7 @@ if [ $# -lt 1 ]; then
 	cat <<EOF
 Usage: $0 <what>
 
-<what> is one of "profound-original", "profound-adacs", "skygrid-original" and "skygrid-adacs"
+<what> is one of "profound-original", "profound-adacs", "skygrid-original" and "skygrid-adacs", "baseline"
 EOF
 	exit 1
 fi
