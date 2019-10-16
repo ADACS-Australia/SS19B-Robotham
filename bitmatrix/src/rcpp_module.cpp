@@ -52,9 +52,26 @@ Rcpp::Function quantile=rstats["quantile"];
         // rows are "vertical"
         _nrows = nrows;
         _ncols = ncols;
-        _npts = nrows*ncols;
+        _npts = _nrows*_ncols;
         _n32bitwords = 1 + (_npts >> 5);
         _data.resize(_n32bitwords);
+        fill(false);
+    }
+    BitMatrix::BitMatrix(IntegerMatrix mask) {
+      _nrows = mask.nrow();
+      _ncols = mask.ncol();
+      _npts = _nrows*_ncols;
+      _n32bitwords = 1 + (_npts >> 5);
+      _data.resize(_n32bitwords);
+      for (int i=0;i<_nrows;i++) {
+        for (int j=0;j<_ncols;j++) {
+          if (mask(i,j)) {
+            settrue(i,j);
+          } else {
+            setfalse(i,j);
+          }
+        }
+      }
     }
     void BitMatrix::fill(bool yesno) {
         for (int i=0;i<_nrows;i++) {
@@ -146,6 +163,18 @@ Rcpp::Function quantile=rstats["quantile"];
                 }
             }
         }
+    }
+    
+    void BitMatrix::maskValue(NumericMatrix x, double value) {
+      int nrow = x.nrow();
+      int ncol = x.ncol();
+      for (int i = 0; i < nrow; i++) {
+        for (int j = 0; j < ncol; j++) {
+          if (!std::isnan(x(i,j)) && x(i,j)==value) {
+            settrue(i,j);
+          }
+        }
+      }
     }
 
     std::vector<int> BitMatrix::_trues() const {
@@ -1460,7 +1489,7 @@ Rcpp::Function quantile=rstats["quantile"];
         int ncols=image.ncol();
         for (int i=0; i<ncols; i++) {
           for (int j=0; j<nrows; j++) {
-            if (bmask.istrue(j+1, i+1)) {
+            if (bmask.istrue(j, i)) {
               sky(j, i) = R_NaN;
               skyRMS(j, i) = R_NaN;
             }

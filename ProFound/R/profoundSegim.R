@@ -569,6 +569,8 @@ profoundSegimStats=function(image=NULL, segim=NULL, mask=NULL, sky=NULL, skyRMS=
     skyRMS_mean=0
   }
   
+  print(paste("COLUMNS OF DATAFRAME",attr(tempDT,"name")))
+  print(tempDT)
   xcen=tempDT[,.meanwt(x-0.5, flux),by=segID]$V1
   ycen=tempDT[,.meanwt(y-0.5, flux),by=segID]$V1
   xsd=tempDT[,sqrt(.varwt(x-0.5,flux)),by=segID]$V1

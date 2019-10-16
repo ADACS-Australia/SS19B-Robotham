@@ -36,15 +36,11 @@ if (what == 'profound-original') {
 	  box = c(box[1], box[2]+1)
 	}
 	scratch <- list(
-			scratchN1=matrix(0.0,box[1],box[2]),
-			scratchN2=matrix(0.0,box[1],box[2]),
-			scratchI1=matrix(FALSE,box[1],box[2]),
-			scratchI2=matrix(FALSE,box[1],box[2]),
 			scratchSKY=matrix(0.0,dim(image)[1],dim(image)[2]),
 			scratchSKYRMS=matrix(0.0,dim(image)[1],dim(image)[2])
 	)
 	initialiseGlobals(TRUE)
-	result = profoundMakeSkyGridADACSInPlace(image, box=box, scratch=scratch)
+	result = adacs_MakeSkyGrid(image, box=box, scratch=scratch)
 } else {
         print(paste("Option not recognised: ",what))
 }

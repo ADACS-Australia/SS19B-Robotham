@@ -8,6 +8,7 @@ class BitMatrix {
 public:
     BitMatrix();
     BitMatrix(int nrows, int ncols);
+    BitMatrix(Rcpp::IntegerMatrix mask);
     void fill(bool yesno);
     bool settrue(uint32_t row, uint32_t col);       // 0 relative
     bool _settrue(uint32_t row, uint32_t col);      // 1 relative
@@ -21,6 +22,7 @@ public:
     std::vector<int> which(NumericVector x, Function f, List args);
 
     void maskNaN(NumericMatrix x);
+    void maskValue(NumericMatrix x, double value);
 
     std::vector<int> trues(int32_t offset=0) const; // 0 relative
     std::vector<int> _trues() const;                // 1 relative
@@ -159,6 +161,7 @@ RCPP_MODULE(yada){
     // expose the default constructor
     .constructor()
     .constructor<int, int>()
+    .constructor<IntegerMatrix>()
 
     .method("fill", &BitMatrix::fill     , "set or clear all bits")
     .method("settrue", &BitMatrix::_settrue     , "set the bit.  1 relative")
@@ -167,6 +170,7 @@ RCPP_MODULE(yada){
     .const_method("isfalse", &BitMatrix::_istrue     , "test if bit clear.  1 relative")
     .method("which", &BitMatrix::which , "C implementation of which")
     .method("maskNaN", &BitMatrix::maskNaN , "Mask any NaN's as true")
+    .method("maskValue", &BitMatrix::maskValue, "Mask any cell with the given value")
     .const_method("trues", &BitMatrix::_trues, "which are true.  1 relative")
     ;
 

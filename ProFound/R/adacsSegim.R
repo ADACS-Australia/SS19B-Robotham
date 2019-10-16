@@ -1,4 +1,18 @@
-adacs_MakeSegim=function(image=NULL, mask=NULL, bmask=NULL, objects=NULL, skycut=1, pixcut=3, tolerance=4, ext=2, reltol=0, cliptol=Inf, sigma=1, smooth=TRUE, SBlim=NULL, magzero=0, gain=NULL, pixscale=1, sky=NULL, skyRMS=NULL, header=NULL, verbose=FALSE, plot=FALSE, stats=TRUE, rotstats=FALSE, boundstats=FALSE, offset=1, sortcol = "segID", decreasing = FALSE, watershed = 'ProFound', ...){
+.adacs_FluxCalcMin=function(image=NULL, segim=NULL, mask=NULL, bmask=NULL){
+  
+  #Set masked things to NA, to be safe:
+  image[bmask$trues()]=NA
+  
+  segsel=which(segim>0)
+  segID=flux=NULL
+  tempDT=data.table(segID=as.integer(segim[segsel]),flux=as.numeric(image[segsel]))
+  
+  output=tempDT[,.fluxcalcmin(flux), by=segID]
+  setkey(output, segID)
+  
+  return(as.data.frame(output))
+}
+adacs_MakeSegim=function(image=NULL, bmask=NULL, objects=NULL, skycut=1, pixcut=3, tolerance=4, ext=2, reltol=0, cliptol=Inf, sigma=1, smooth=TRUE, SBlim=NULL, magzero=0, gain=NULL, pixscale=1, sky=NULL, skyRMS=NULL, header=NULL, verbose=FALSE, plot=FALSE, stats=TRUE, rotstats=FALSE, boundstats=FALSE, offset=1, sortcol = "segID", decreasing = FALSE, watershed = 'ProFound', ...){
   
   call=match.call()
   if(verbose){message(' - Running MakeSegim:')}
@@ -6,16 +20,7 @@ adacs_MakeSegim=function(image=NULL, mask=NULL, bmask=NULL, objects=NULL, skycut
   
   #Treat image NAs as masked regions:
   
-  if(!is.null(mask)){
-    if(anyNA(image)){
-      mask[is.na(image)]=1L
-    }
-  }else{
-    if(anyNA(image)){
-      mask=matrix(0L,dim(image)[1],dim(image)[2])
-      mask[is.na(image)]=1L
-    }
-  }
+  bmask$maskNaN(image)
   
   hassky=!is.null(sky)
   hasskyRMS=!is.null(skyRMS)
@@ -47,9 +52,7 @@ adacs_MakeSegim=function(image=NULL, mask=NULL, bmask=NULL, objects=NULL, skycut
     #image[image<skycut | image_sky<profoundSB2Flux(SBlim, magzero, pixscale)]=0
     image[image_sky<profoundSB2Flux(SBlim, magzero, pixscale)]=0
   }
-  if(!is.null(mask)){
-    image[mask>0]=0
-  }
+  image[bmask$trues()]=0
   if(verbose){message(paste(" - Watershed de-blending -", round(proc.time()[3]-timestart,3), "sec"))}
   if(any(image>0)){
     if(watershed=='EBImage'){
@@ -74,7 +77,7 @@ adacs_MakeSegim=function(image=NULL, mask=NULL, bmask=NULL, objects=NULL, skycut
   
   if(plot){
     if(verbose){message(paste(" - Plotting segments -", round(proc.time()[3]-timestart,3), "sec"))}
-    profoundSegimPlot(image=image_orig, segim=segim, mask=mask, sky=sky, ...)
+    adacs_SegimPlot(image=image_orig, segim=segim, bmask=bmask, sky=sky, ...)
   }else{
     if(verbose){message(" - Skipping segmentation plot - plot set to FALSE")}
   }
@@ -84,19 +87,11 @@ adacs_MakeSegim=function(image=NULL, mask=NULL, bmask=NULL, objects=NULL, skycut
   
   if(stats & any(image>0)){
     if(verbose){message(paste(" - Calculating segstats -", round(proc.time()[3]-timestart,3), "sec"))}
-    segstats=adacs_SegimStats(image=image_orig, segim=segim, mask=mask, sky=sky, skyRMS=skyRMS, magzero=magzero, gain=gain, pixscale=pixscale, header=header, sortcol=sortcol, decreasing=decreasing, rotstats=rotstats, boundstats=boundstats, offset=offset)
+    segstats=adacs_SegimStats(image=image_orig, segim=segim, bmask=bmask, sky=sky, skyRMS=skyRMS, magzero=magzero, gain=gain, pixscale=pixscale, header=header, sortcol=sortcol, decreasing=decreasing, rotstats=rotstats, boundstats=boundstats, offset=offset)
   }else{
     if(verbose){message(" - Skipping segmentation statistics - segstats set to FALSE or no segments")}
     segstats=NULL
   }
-  
-  #if(!is.null(SBlim) & !missing(magzero)){
-  #  SBlim=min(SBlim, profoundFlux2SB(flux=skyRMS*skycut, magzero=magzero, pixscale=pixscale), na.rm=doRMNA)
-  #}else if(is.null(SBlim) & !missing(magzero) & skycut>0){
-  #  SBlim=profoundFlux2SB(flux=skyRMS*skycut, magzero=magzero, pixscale=pixscale)
-  #}else{
-  #  SBlim=NULL
-  #}
   
   if(is.null(header)){header=NULL}
   
@@ -104,7 +99,7 @@ adacs_MakeSegim=function(image=NULL, mask=NULL, bmask=NULL, objects=NULL, skycut
   
   invisible(list(segim=segim, objects=objects, sky=sky, skyRMS=skyRMS, segstats=segstats, header=header, call=call))
 }
-adacs_MakeSegimDilate=function(image=NULL, segim=NULL, mask=NULL, size=9, shape='disc', expand='all', magzero=0, gain=NULL, pixscale=1, sky=0, skyRMS=0, header=NULL, verbose=FALSE, plot=FALSE, stats=TRUE, rotstats=FALSE, boundstats=FALSE, offset=1, sortcol = "segID", decreasing = FALSE, ...){
+adacs_MakeSegimDilate=function(image=NULL, segim=NULL, bmask=NULL, size=9, shape='disc', expand='all', magzero=0, gain=NULL, pixscale=1, sky=0, skyRMS=0, header=NULL, verbose=FALSE, plot=FALSE, stats=TRUE, rotstats=FALSE, boundstats=FALSE, offset=1, sortcol = "segID", decreasing = FALSE, ...){
   
   if(verbose){message(' - Running MakeSegimDilate:')}
   timestart = proc.time()[3]
@@ -119,13 +114,12 @@ adacs_MakeSegimDilate=function(image=NULL, segim=NULL, mask=NULL, size=9, shape=
   
   #Treat image NAs as masked regions:
   
-  if(!is.null(mask) & !is.null(image)){
-    mask[is.na(image)]=1L
-  }else{
-    if(anyNA(image)){
-      mask=matrix(0L,dim(image)[1],dim(image)[2])
-      mask[is.na(image)]=1L
+  
+  if (!is.null(image)) {
+    if (is.null(bmask)) {
+      bmask=new(BitMatrix, dim(image)[1],dim(image)[2])
     }
+    bmask$maskNaN(image)
   }
   
   if(missing(pixscale) & !is.null(header)){
@@ -143,7 +137,7 @@ adacs_MakeSegimDilate=function(image=NULL, segim=NULL, mask=NULL, size=9, shape=
     
     if(stats){
       if(verbose){message(paste(" - Calculating segstats -", round(proc.time()[3]-timestart,3), "sec"))}
-      segstats=adacs_SegimStats(image=image, segim=segim, mask=mask, sky=sky, skyRMS=skyRMS, magzero=magzero, gain=gain, pixscale=pixscale, header=header, sortcol=sortcol, decreasing=decreasing, rotstats=rotstats, boundstats=boundstats, offset=offset)
+      segstats=adacs_SegimStats(image=image, segim=segim, bmask=bmask, sky=sky, skyRMS=skyRMS, magzero=magzero, gain=gain, pixscale=pixscale, header=header, sortcol=sortcol, decreasing=decreasing, rotstats=rotstats, boundstats=boundstats, offset=offset)
     }else{
       if(verbose){message(" - Skipping segmentation statistics - segstats set to FALSE")}
       segstats=NULL
@@ -184,14 +178,14 @@ adacs_MakeSegimDilate=function(image=NULL, segim=NULL, mask=NULL, size=9, shape=
   
   rm(segim)
   
-  if(!is.null(mask) & !is.null(image)){
-    segim_new[mask!=0]=0
-    image[mask!=0]=NA
+  if(!is.null(image)){
+    segim_new[bmask$trues()]=0
+    image[bmask$trues()]=NA
   }
   
   if(stats & !is.null(image)){
     if(verbose){message(paste(" - Calculating segstats -", round(proc.time()[3]-timestart,3), "sec"))}
-    segstats=adacs_SegimStats(image=image, segim=segim_new, mask=mask, sky=sky, skyRMS=skyRMS, magzero=magzero, gain=gain, pixscale=pixscale, header=header, sortcol=sortcol, decreasing=decreasing, rotstats=rotstats, boundstats=boundstats, offset=offset)
+    segstats=adacs_SegimStats(image=image, segim=segim_new, bmask=bmask, sky=sky, skyRMS=skyRMS, magzero=magzero, gain=gain, pixscale=pixscale, header=header, sortcol=sortcol, decreasing=decreasing, rotstats=rotstats, boundstats=boundstats, offset=offset)
   }else{
     if(verbose){message(" - Skipping segmentation statistics - segstats set to FALSE")}
     segstats=NULL
@@ -201,7 +195,7 @@ adacs_MakeSegimDilate=function(image=NULL, segim=NULL, mask=NULL, size=9, shape=
   objects[]=as.logical(segim_new)
   
   if(plot & !is.null(image)){
-    profoundSegimPlot(image=image, segim=segim_new, mask=mask, sky=sky, ...)
+    adacs_SegimPlot(image=image, segim=segim_new, bmask=bmask, sky=sky, ...)
   }
   
   if(is.null(header)){header=NULL}
@@ -211,7 +205,7 @@ adacs_MakeSegimDilate=function(image=NULL, segim=NULL, mask=NULL, size=9, shape=
   return(invisible(list(segim=segim_new, objects=objects, segstats=segstats, header=header, call=call)))
 }
 
-adacs_SegimStats=function(image=NULL, segim=NULL, mask=NULL, sky=NULL, skyRMS=NULL, magzero=0, gain=NULL, pixscale=1, header=NULL, sortcol='segID', decreasing=FALSE, rotstats=FALSE, boundstats=FALSE, offset=1, cor_err_func=NULL, app_diam=1){
+adacs_SegimStats=function(image=NULL, segim=NULL, bmask=NULL, sky=NULL, skyRMS=NULL, magzero=0, gain=NULL, pixscale=1, header=NULL, sortcol='segID', decreasing=FALSE, rotstats=FALSE, boundstats=FALSE, offset=1, cor_err_func=NULL, app_diam=1){
   
   if(missing(pixscale) & !is.null(header)){
     pixscale=getpixscale(header)
@@ -241,21 +235,11 @@ adacs_SegimStats=function(image=NULL, segim=NULL, mask=NULL, sky=NULL, skyRMS=NU
   
   #Treat image NAs as masked regions:
   
-  if(!is.null(mask)){
-    mask[is.na(image)]=1L
-  }else{
-    if(anyNA(image)){
-      mask=matrix(0L,dim(image)[1],dim(image)[2])
-      mask[is.na(image)]=1L
-    }
-  }
+  bmask$maskNaN(image)
   
   #Set masked things to NA, to be safe:
   
-  if(!is.null(mask)){
-    image[mask!=0]=NA
-    #segim[mask!=0]=NA
-  }
+  image[bmask$trues()]=NA
   
   xlen=dim(image)[1]
   ylen=dim(image)[2]
@@ -467,7 +451,8 @@ adacs_SegimStats=function(image=NULL, segim=NULL, mask=NULL, sky=NULL, skyRMS=NU
     Nborder=tab_border[bordersel,2]+tab_border[bordersel,3]+tab_border[bordersel,4]+tab_border[bordersel,5]
     flag_border=1*(tab_border[bordersel,2]>0)+2*(tab_border[bordersel,3]>0)+4*(tab_border[bordersel,4]>0)+8*(tab_border[bordersel,5]>0)
     
-    if(!is.null(mask)){
+    mask = matrix(0L,xlen,ylen)
+    mask[bmask$trues()]=1L
       outer_mask=segim_inner>0 & (mask[2:(xlen-1)+1,2:(ylen-1)]==1 | mask[2:(xlen-1)-1,2:(ylen-1)]==1 | mask[2:(xlen-1),2:(ylen-1)+1]==1 | mask[2:(xlen-1),2:(ylen-1)-1]==1)
       segim_mask=segim_edge
       segim_mask[outer_mask==0]=0
@@ -479,9 +464,6 @@ adacs_SegimStats=function(image=NULL, segim=NULL, mask=NULL, sky=NULL, skyRMS=NU
       rm(segim_inner)
       rm(tab_mask)
       
-    }else{
-      Nmask=0
-    }
     
     Nedge=Nedge+Nborder
     #Nsky=Nsky-Nmask #Raw Nsky-Nmask-Nborder, to correct for masked pixels
@@ -519,4 +501,75 @@ adacs_SegimStats=function(image=NULL, segim=NULL, mask=NULL, sky=NULL, skyRMS=NU
   
   segstats=data.table(segID=segID, uniqueID=uniqueID, xcen=xcen, ycen=ycen, xmax=xmax, ymax=ymax, RAcen=RAcen, Deccen=Deccen, RAmax=RAmax, Decmax=Decmax, sep=sep, flux=fluxout$flux, mag=mag, flux_app=fluxout$flux_app, mag_app=mag_app, cenfrac=fluxout$cenfrac, N50=fluxout$N50seg, N90=fluxout$N90seg, N100=fluxout$N100seg, R50=R50seg, R90=R90seg, R100=R100seg, SB_N50=SB_N50, SB_N90=SB_N90, SB_N100=SB_N100, xsd=xsd, ysd=ysd, covxy=covxy, corxy=corxy, con=con, asymm=asymm, flux_reflect=flux_reflect, mag_reflect=mag_reflect, semimaj=rad$hi, semimin=rad$lo, axrat=axrat, ang=ang, signif=signif, FPlim=FPlim, flux_err=flux_err, mag_err=mag_err, flux_err_sky=flux_err_sky, flux_err_skyRMS=flux_err_skyRMS, flux_err_shot=flux_err_shot, flux_err_cor=flux_err_cor, cor_seg=cor_seg, sky_mean=sky_mean, sky_sum=sky_mean*fluxout$N100seg, skyRMS_mean=skyRMS_mean, Nedge=Nedge, Nsky=Nsky, Nobject=Nobject, Nborder=Nborder, Nmask=Nmask, edge_frac=edge_frac, edge_excess=edge_excess, flag_border=flag_border)
   invisible(as.data.frame(segstats[order(segstats[[sortcol]], decreasing=decreasing),]))
+}
+
+adacs_SegimPlot=function(image=NULL, segim=NULL, mask=NULL, bmask=NULL, sky=NULL, header=NULL, col=rainbow(max(segim), end=2/3), profound=NULL, ...){
+  if(!is.null(image)){
+    if(class(image)=='profound'){
+      if(is.null(segim)){segim=image$segim}
+      if(is.null(mask)){mask=image$mask}
+      if(is.null(sky)){sky=image$sky}
+      if(is.null(header)){header=image$header}
+      image=image$image
+      if(is.null(image)){stop('Need image in profound object to be non-Null')}
+    }
+  }
+  if(!is.null(profound)){
+    if(class(profound) != 'profound'){
+      stop('Class of profound input must be of type \'profound\'')
+    }
+    if(is.null(image)){image=profound$image}
+    if(is.null(image)){stop('Need image in profound object to be non-Null')}
+    if(is.null(segim)){segim=profound$segim}
+    if(is.null(mask)){mask=profound$mask}
+    if(is.null(bmask)){bmask=profound$bmask}
+    if(is.null(sky)){sky=profound$sky}
+    if(is.null(header)){header=profound$header}
+  }
+  if(!is.null(image)){
+    if(any(names(image)=='imDat') & is.null(header)){
+      header=image$hdr
+      image=image$imDat
+    }else if(any(names(image)=='imDat') & !is.null(header)){
+      image=image$imDat
+    }
+    if(any(names(image)=='dat') & is.null(header)){
+      header=image$hdr[[1]]
+      header=data.frame(key=header[,1],value=header[,2], stringsAsFactors = FALSE)
+      image=image$dat[[1]]
+    }else if(any(names(image)=='dat') & !is.null(header)){
+      image=image$dat[[1]]
+    }
+    if(any(names(image)=='image') & is.null(header)){
+      header=image$header
+      image=image$image
+    }else if(any(names(image)=='image') & !is.null(header)){
+      image=image$image
+    }
+  }
+  
+  if(!is.null(sky)){
+    image=image-sky
+  }
+  
+  segim[is.na(segim)]=0L
+  
+  if(is.null(header)){header=NULL}
+  if(is.null(header)){
+    temp=magimage(image, ...)
+  }else{
+    temp=magimageWCS(image, header=header, ...)
+  }
+  if(min(segim,na.rm=doRMNA)!=0){segim=segim-min(segim,na.rm=doRMNA)}
+  segvec=which(tabulate(segim)>0)
+  for(i in segvec){
+    z=segim==i
+    z=z[ceiling(temp$x), ceiling(temp$y)]
+    contour(temp$x,temp$y,z,add=T,col=col[i],zlim=c(0,1),drawlabels=FALSE,nlevels=1)
+  }
+  if(!is.null(mask)){
+    if(!is.null(mask)){
+      magimage(mask!=0, col=c(NA,hsv(alpha=0.2)), add=TRUE, magmap=FALSE, zlim=c(0,1))
+    }
+  }
 }

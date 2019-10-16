@@ -268,6 +268,9 @@ adacs_MakeSkyGrid=function(image=NULL, objects=NULL, bmask=NULL, box=c(100,100),
   temp_bi_sky = scratch[['scratchSKY']]
   temp_bi_skyRMS = scratch[['scratchSKYRMS']]
   adacs<-new(Adacs)
+  if (is.null(bmask)) {
+    bmask = new(BitMatrix, dim(image)[1], dim(image)[2])
+  }
   adacs$Cadacs_MakeSkyGrid(image, objects, bmask, 
                      box[1], box[2],
                      grid[1], grid[2],
@@ -277,6 +280,15 @@ adacs_MakeSkyGrid=function(image=NULL, objects=NULL, bmask=NULL, box=c(100,100),
                      temp_bi_sky, temp_bi_skyRMS)
   
   invisible(list(sky=temp_bi_sky, skyRMS=temp_bi_skyRMS))
+}
+
+adacs_MakeMask=function(image, maskflag=NULL) {
+  bmask=new(BitMatrix, dim(image)[1], dim(image)[2])
+  if (!is.null(maskflag)) {
+    bmask$maskValue(maskflag)
+  } else {
+    bmask$maskNaN(image)
+  }
 }
 
 mlook=function(H,r)
