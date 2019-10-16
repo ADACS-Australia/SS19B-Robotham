@@ -17,16 +17,23 @@ for (i in seq_along(seq_len(image_resize_steps))) {
 		image = rbind(image, image)
 	}
 }
-image[1,1] = NaN
 
 # Go, go, go!
 if (what == 'profound-original') {
-	result = profoundProFound(image, box=c(box_size, box_size))
+	mask = matrix(0L,dim(image)[1],dim(image)[2])
+        mask[1,1] = 1L
+	result = profoundProFound(image, box=c(box_size, box_size), mask=mask)
 } else if (what == 'profound-adacs') {
-	result = profoundProFoundADACSInPlace(image, box=c(box_size, box_size))
+	bmask = new(BitMatrix,dim(image)[1],dim(image)[2])
+        bmask$settrue(1,1)
+	result = adacs_ProFound(image, box=c(box_size, box_size), bmask=bmask)
 } else if (what == 'skygrid-original') {
-	result = profoundMakeSkyGrid(image, box=c(box_size, box_size))
+	mask = matrix(0L,dim(image)[1],dim(image)[2])
+        mask[1,1] = 1L
+	result = profoundMakeSkyGrid(image, box=c(box_size, box_size), mask=mask)
 } else if (what == 'skygrid-adacs') {
+	bmask = new(BitMatrix,dim(image)[1],dim(image)[2])
+        bmask$settrue(1,1)
 	# Ensure dimensions of box are odd numbers
 	box = c(box_size,box_size)
 	if (box[1]%%2 == 0) {
@@ -40,7 +47,8 @@ if (what == 'profound-original') {
 			scratchSKYRMS=matrix(0.0,dim(image)[1],dim(image)[2])
 	)
 	initialiseGlobals(TRUE)
-	result = adacs_MakeSkyGrid(image, box=box, scratch=scratch)
+	result = adacs_MakeSkyGrid(image, box=box, scratch=scratch, bmask=bmask)
+} else if (what == 'baseline') {
 } else {
         print(paste("Option not recognised: ",what))
 }
