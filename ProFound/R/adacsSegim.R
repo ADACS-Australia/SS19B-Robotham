@@ -1,4 +1,4 @@
-.adacs_FluxCalcMin=function(image=NULL, segim=NULL, mask=NULL, bmask=NULL){
+.adacs_FluxCalcMin=function(image=NULL, segim=NULL, bmask=NULL){
   
   #Set masked things to NA, to be safe:
   image[bmask$trues()]=NA
