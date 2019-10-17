@@ -128,6 +128,118 @@ adacs_MakeSegimDilate=function(image=NULL, segim=NULL, bmask=NULL, size=9, shape
   }
   
   kern = EBImage::makeBrush(size, shape=shape)
+  bkern = new(BitMatrix, kern)
+  
+  if(verbose){message(paste(" - Dilating segments -", round(proc.time()[3]-timestart,3), "sec"))}
+  
+  if(is.null(expand) | length(expand)==0){
+    objects=matrix(0L,dim(segim)[1],dim(segim)[2])
+    objects[]=as.logical(segim)
+    
+    if(stats){
+      if(verbose){message(paste(" - Calculating segstats -", round(proc.time()[3]-timestart,3), "sec"))}
+      segstats=adacs_SegimStats(image=image, segim=segim, bmask=bmask, sky=sky, skyRMS=skyRMS, magzero=magzero, gain=gain, pixscale=pixscale, header=header, sortcol=sortcol, decreasing=decreasing, rotstats=rotstats, boundstats=boundstats, offset=offset)
+    }else{
+      if(verbose){message(" - Skipping segmentation statistics - segstats set to FALSE")}
+      segstats=NULL
+    }
+    
+    return(invisible(list(segim=segim, objects=objects, segstats=segstats, header=header, call=call)))
+  }
+  
+  if(expand[1]=='all'){
+    if (class(segim[1,1])=="integer") {
+      print("BitMatrix candidate")
+      bsegim = new(BitMatrix, segim)
+      bsegim$dilate(bkern)
+    }
+    segim_new=segim
+    maxorig=max(segim_new, na.rm=doRMNA)+1L
+    replace=which(segim_new!=0)
+    segim_new[replace]=maxorig-segim_new[replace]
+    segim_new=EBImage::imageData(EBImage::dilate(segim_new, kern)) #Run Dilate
+    replace=which(segim_new!=0)
+    segim_new[replace]=maxorig-segim_new[replace]
+    replace=which(segim!=0) #put back non-dilated segments
+    segim_new[replace]=segim[replace] #put back non-dilated segments
+  }else{
+    segim_new=segim
+    #segim_new[!(segim_new %in% expand)]=0L #remove things that will not be dilated
+    if('fastmatch' %in% .packages()){ #remove things that will not be dilated
+      segim_new[fastmatch::fmatch(segim_new, expand, nomatch = 0L) == 0L] = 0L
+    }else{
+      segim_new[!(segim_new %in% expand)] = 0L
+    }
+    maxorig=max(segim_new, na.rm=doRMNA)+1L
+    replace=which(segim_new!=0)
+    segim_new[replace]=maxorig-segim_new[replace]
+    segim_new=EBImage::imageData(EBImage::dilate(segim_new, kern)) #Run Dilate
+    replace=which(segim_new!=0)
+    segim_new[replace]=maxorig-segim_new[replace]
+    replace=which(segim!=0) #put back non-dilated segments
+    segim_new[replace]=segim[replace] #put back non-dilated segments
+    rm(replace)
+  }
+  mode(segim_new)='integer'
+  
+  rm(segim)
+  
+  if(!is.null(image)){
+    segim_new[bmask$trues()]=0
+    image[bmask$trues()]=NA
+  }
+  
+  if(stats & !is.null(image)){
+    if(verbose){message(paste(" - Calculating segstats -", round(proc.time()[3]-timestart,3), "sec"))}
+    segstats=adacs_SegimStats(image=image, segim=segim_new, bmask=bmask, sky=sky, skyRMS=skyRMS, magzero=magzero, gain=gain, pixscale=pixscale, header=header, sortcol=sortcol, decreasing=decreasing, rotstats=rotstats, boundstats=boundstats, offset=offset)
+  }else{
+    if(verbose){message(" - Skipping segmentation statistics - segstats set to FALSE")}
+    segstats=NULL
+  }
+  
+  objects=matrix(0L,dim(segim_new)[1],dim(segim_new)[2])
+  objects[]=as.logical(segim_new)
+  
+  if(plot & !is.null(image)){
+    adacs_SegimPlot(image=image, segim=segim_new, bmask=bmask, sky=sky, ...)
+  }
+  
+  if(is.null(header)){header=NULL}
+  
+  if(verbose){message(paste(" - profoundMakeSegimDilate is finished! -", round(proc.time()[3]-timestart,3), "sec"))}
+  
+  return(invisible(list(segim=segim_new, objects=objects, segstats=segstats, header=header, call=call)))
+}
+adacs_MakeSegimDilateBitMatrix=function(image=NULL, segim=NULL, bmask=NULL, size=9, shape='disc', expand='all', magzero=0, gain=NULL, pixscale=1, sky=0, skyRMS=0, header=NULL, verbose=FALSE, plot=FALSE, stats=TRUE, rotstats=FALSE, boundstats=FALSE, offset=1, sortcol = "segID", decreasing = FALSE, ...){
+  
+  if(verbose){message(' - Running MakeSegimDilate:')}
+  timestart = proc.time()[3]
+  
+  
+  
+  call=match.call()
+  
+  if(!requireNamespace("EBImage", quietly = TRUE)){
+    stop('The EBImage package is needed for this function to work. Please install it from Bioconductor.', call. = FALSE)
+  }
+  
+  #Treat image NAs as masked regions:
+  
+  
+  if (!is.null(image)) {
+    if (is.null(bmask)) {
+      bmask=new(BitMatrix, dim(image)[1],dim(image)[2])
+    }
+    bmask$maskNaN(image)
+  }
+  
+  if(missing(pixscale) & !is.null(header)){
+    pixscale=getpixscale(header)
+    if(verbose){message(paste(' - Extracted pixel scale from header provided:',round(pixscale,3),'asec/pixel.'))}
+  }
+  
+  kern = EBImage::makeBrush(size, shape=shape)
+  bkern = new(BitMatrix, kern)
   
   if(verbose){message(paste(" - Dilating segments -", round(proc.time()[3]-timestart,3), "sec"))}
   
