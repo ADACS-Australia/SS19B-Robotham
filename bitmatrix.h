@@ -18,11 +18,15 @@ public:
     bool _istrue(uint32_t row, uint32_t col) const;
     bool isfalse(uint32_t row, uint32_t col) const;
     bool _isfalse(uint32_t row, uint32_t col) const;
+    int nrow() const;
+    int ncol() const;
 
     std::vector<int> which(NumericVector x, Function f, List args);
 
     void maskNaN(NumericMatrix x);
     void maskValue(NumericMatrix x, double value);
+    void clearValue(IntegerMatrix x, int value);
+    void copyTo(IntegerMatrix x);
     void dilate(BitMatrix & kernrel);
 
     std::vector<int> trues(int32_t offset=0) const; // 0 relative
@@ -107,8 +111,8 @@ public:
 #define MIN(a,b) (a)<(b)?(a):(b)
 #define ABS(a) (a)<0?(-a):(a)
 #define flt64Null -999
-  Rcpp::NumericVector Cadacs_FindSkyCellValues(Rcpp::NumericMatrix image, Rcpp::Nullable<Rcpp::IntegerMatrix> objects,
-                                               BitMatrix & bmask,
+  Rcpp::NumericVector Cadacs_FindSkyCellValues(Rcpp::NumericMatrix image,
+                                               BitMatrix & bobjects, BitMatrix & bmask,
                                                const double loc1, const double loc2,
                                                const double box1, const double box2,
                                                const double boxadd1, const double boxadd2,
@@ -137,16 +141,16 @@ public:
   double_t Cadacs_mode(Rcpp::NumericVector x);
   void adacsBothFromHistogram(Rcpp::NumericVector x, double quantile,Rcpp::NumericVector results);
   void adacsBothFromHistogramV2(Rcpp::NumericVector x, double quantile,Rcpp::NumericVector results);
-  Rcpp::NumericVector Cadacs_SkyEstLoc(Rcpp::NumericMatrix image,Rcpp::Nullable<Rcpp::IntegerMatrix> objects,
-                                       BitMatrix & bmask,
+  Rcpp::NumericVector Cadacs_SkyEstLoc(Rcpp::NumericMatrix image,
+                                       BitMatrix & bobjects, BitMatrix & bmask,
                                        const double loc1, const double loc2,
                                        const double box1, const double box2,
                                        const double boxadd1, const double boxadd2,
                                        const int skypixmin, const int boxiters,
                                        const int doclip, const int skytype, const int skyRMStype, const double sigmasel
   );
-  void Cadacs_MakeSkyGrid(Rcpp::NumericMatrix image,Rcpp::Nullable<Rcpp::IntegerMatrix> objects,
-                          BitMatrix & bmask,
+  void Cadacs_MakeSkyGrid(Rcpp::NumericMatrix image,
+                          BitMatrix & bobjects, BitMatrix & bmask,
                           const int box1, const int box2,
                           const int grid1, const int grid2,
                           const int boxadd1, const int boxadd2,
@@ -172,7 +176,11 @@ RCPP_MODULE(yada){
     .method("which", &BitMatrix::which , "C implementation of which")
     .method("maskNaN", &BitMatrix::maskNaN , "Mask any NaN's as true")
     .method("maskValue", &BitMatrix::maskValue, "Mask any cell with the given value")
+    .method("clearValue", &BitMatrix::clearValue, "Clears any cell with the given value")
+    .method("copyTo", &BitMatrix::copyTo, "exports to IntegerMatrix")
     .const_method("trues", &BitMatrix::_trues, "which are true.  1 relative")
+    .const_method("nrow", &BitMatrix::nrow, "return matrix nrows")
+    .const_method("ncol", &BitMatrix::ncol, "return matrix ncols")
     .method("dilate", &BitMatrix::dilate, "apply the morphological dilate operation")
     ;
 

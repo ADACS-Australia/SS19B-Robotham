@@ -262,7 +262,7 @@ FindSkyCellValues=function(image=NULL, objects=NULL, mask=NULL, loc=dim(image)/2
   invisible(list(select=select, box=box, skyN=skyN))
 }
 
-adacs_MakeSkyGrid=function(image=NULL, objects=NULL, bmask=NULL, box=c(100,100), grid=box, type='bicubic', skytype='median', skyRMStype='quanlo', sigmasel=1,
+adacs_MakeSkyGrid=function(image=NULL, bobjects=NULL, bmask=NULL, box=c(100,100), grid=box, type='bicubic', skytype='median', skyRMStype='quanlo', sigmasel=1,
                                                skypixmin=prod(box)/2, boxadd=box/2, boxiters=0, doclip=TRUE, cores=1,
                                                scratch=NULL) {
   temp_bi_sky = scratch[['scratchSKY']]
@@ -271,7 +271,7 @@ adacs_MakeSkyGrid=function(image=NULL, objects=NULL, bmask=NULL, box=c(100,100),
   if (is.null(bmask)) {
     bmask = new(BitMatrix, dim(image)[1], dim(image)[2])
   }
-  adacs$Cadacs_MakeSkyGrid(image, objects, bmask, 
+  adacs$Cadacs_MakeSkyGrid(image, bobjects, bmask, 
                      box[1], box[2],
                      grid[1], grid[2],
                      boxadd[1], boxadd[2],

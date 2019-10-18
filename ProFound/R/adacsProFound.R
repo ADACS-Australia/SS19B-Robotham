@@ -1,4 +1,4 @@
-adacs_ProFound=function(image=NULL, segim=NULL, objects=NULL, bmask=NULL, skycut=1, pixcut=3, tolerance=4, ext=2, reltol=0, cliptol=Inf, sigma=1, smooth=TRUE, SBlim=NULL, size=5, shape='disc', iters=6,
+adacs_ProFound=function(image=NULL, segim=NULL, bobjects=NULL, bmask=NULL, skycut=1, pixcut=3, tolerance=4, ext=2, reltol=0, cliptol=Inf, sigma=1, smooth=TRUE, SBlim=NULL, size=5, shape='disc', iters=6,
                                       threshold=1.05, magzero=0, gain=NULL, pixscale=1, sky=NULL, skyRMS=NULL, redosegim=FALSE, redosky=TRUE, redoskysize=21, box=c(101,101), grid=box,
                                       type='bicubic', skytype='median', skyRMStype='quanlo', roughpedestal=FALSE, sigmasel=1, skypixmin=prod(box)/2, boxadd=box/2, boxiters=0, iterskyloc=TRUE, deblend=FALSE, df=3, radtrunc=2, iterative=FALSE, doclip=TRUE,
                                       shiftloc = FALSE, paddim = TRUE, header=NULL, verbose=FALSE, plot=FALSE, stats=TRUE, rotstats=FALSE, boundstats=FALSE, nearstats=boundstats, groupstats=boundstats, group=NULL, groupby='segim_orig',
@@ -109,13 +109,12 @@ adacs_ProFound=function(image=NULL, segim=NULL, objects=NULL, bmask=NULL, skycut
   skyarea=prod(dim(image))*pixscale^2/(3600^2)
   if(verbose){message(paste('Supplied image is',round(dim(image)[1]*pixscale/60,3),'x',round(dim(image)[2]*pixscale/60,3),'amin, ', round(skyarea,3),'deg-sq'))}
   
-  if(is.null(objects)){
+  if (is.null(bobjects)) {
     if(!is.null(segim)){
-      objects=matrix(0L,dim(segim)[1],dim(segim)[2])
-      objects[]=as.logical(segim)
+      bobjects = new(BitMatrix, segim)
+    } else {
+      bobjects=new(BitMatrix, dim(image)[1], dim(image)[2])
     }
-  }else{
-    objects=objects*1 #Looks silly, but this ensures a logical mask becomes integer.
   }
   
   # Create scratch matrices
@@ -130,7 +129,7 @@ adacs_ProFound=function(image=NULL, segim=NULL, objects=NULL, bmask=NULL, skycut
   
   if((hassky==FALSE | hasskyRMS==FALSE) & is.null(segim)){
     if(verbose){message(paste('Making initial sky map -',round(proc.time()[3]-timestart,3),'sec'))}
-    roughsky=adacs_MakeSkyGrid(image=image, objects=objects, bmask=bmask, box=box, grid=grid, boxadd=boxadd,
+    roughsky=adacs_MakeSkyGrid(image=image, bobjects=bobjects, bmask=bmask, box=box, grid=grid, boxadd=boxadd,
                                              type=type, skytype=skytype, skyRMStype=skyRMStype, sigmasel=sigmasel, 
                                              skypixmin=skypixmin, boxiters=0, doclip=doclip, scratch=scratch)
     if(roughpedestal){
@@ -156,10 +155,10 @@ adacs_ProFound=function(image=NULL, segim=NULL, objects=NULL, bmask=NULL, skycut
   
   if(is.null(segim)){
     if(verbose){message(paste('Making initial segmentation image -',round(proc.time()[3]-timestart,3),'sec'))}
-    segim=adacs_MakeSegim(image=image, objects=objects, bmask=bmask, sky=sky, skyRMS=skyRMS,
+    segim=adacs_MakeSegim(image=image, bmask=bmask, sky=sky, skyRMS=skyRMS,
                             tolerance=tolerance, ext=ext, reltol=reltol, cliptol=cliptol, sigma=sigma, smooth=smooth, pixcut=pixcut, skycut=skycut, SBlim=SBlim,
                             magzero=magzero, pixscale=pixscale, verbose=verbose, watershed=watershed, plot=FALSE)
-    objects=segim$objects
+    bobjects=segim$bobjects
     segim=segim$segim
   }else{
     redosegim=FALSE
@@ -167,15 +166,14 @@ adacs_ProFound=function(image=NULL, segim=NULL, objects=NULL, bmask=NULL, skycut
   }
   if(any(segim>0)){
     if((hassky==FALSE | hasskyRMS==FALSE)){
-      if (TRUE) {
       if(redosky){
         if(verbose){message(paste('Doing initial aggressive dilation -',round(proc.time()[3]-timestart,3),'sec'))}
-        objects_redo=adacs_MakeSegimDilate(segim=objects, size=redoskysize, shape=shape, sky=sky, verbose=verbose, plot=FALSE, stats=FALSE, rotstats=FALSE)$objects
+        bobjects_redo=adacs_MakeSegimDilateBitMatrix(bobjects=bobjects, size=redoskysize, shape=shape, sky=sky, verbose=verbose, plot=FALSE, stats=FALSE, rotstats=FALSE)$bobjects
       }else{
-        objects_redo=objects
+        bobjects_redo=bobjects
       }
       if(verbose){message(paste('Making better sky map -',round(proc.time()[3]-timestart,3),'sec'))}
-      bettersky=adacs_MakeSkyGrid(image=image, objects=objects_redo, bmask=bmask, box=box, grid=grid, boxadd=boxadd,
+      bettersky=adacs_MakeSkyGrid(image=image, bobjects=bobjects_redo, bmask=bmask, box=box, grid=grid, boxadd=boxadd,
                                                 type=type, skytype=skytype, skyRMStype=skyRMStype, sigmasel=sigmasel,
                                                 skypixmin=skypixmin, boxiters=boxiters, doclip=doclip, scratch=scratch)
       if(hassky==FALSE){
@@ -201,8 +199,7 @@ adacs_ProFound=function(image=NULL, segim=NULL, objects=NULL, bmask=NULL, skycut
           imagescale[mask!=0]=0
         }
         segim[imagescale==0]=0
-        objects[segim==0]=0
-      }
+        bobjects$clearValue(segim, 0)
       }
     }else{
       if(verbose){message("Skipping making better sky map - User provided sky and sky RMS")}
@@ -221,16 +218,6 @@ adacs_ProFound=function(image=NULL, segim=NULL, objects=NULL, bmask=NULL, skycut
       }else{
         localadd=0
       }
-      
-      #compmat=matrix(0,nrow = dim(segstats)[1], ncol = iters+1+localadd)
-      #Nmat=compmat
-      #compmat[,1]=segstats[,'flux']
-      #Nmat[,1]=segstats[,'N100']
-      #flux_old=segstats[,'flux']
-      #N100_old=segstats[,'N100']
-      
-      #segim_array=array(0L, dim=c(dim(segim),iters+1+localadd))
-      #segim_array[,,1]=segim
       
       segim_orig=segim
       expand_segID=segstats[,'segID']
@@ -270,8 +257,7 @@ adacs_ProFound=function(image=NULL, segim=NULL, objects=NULL, bmask=NULL, skycut
         skyseg_mean=NA
       }
       
-      objects=matrix(0L,dim(segim)[1],dim(segim)[2])
-      objects[]=as.logical(segim)
+      bobjects = new(BitMatrix, segim)
       
       origfrac = origfrac / (segstats$flux - (skystats * segstats$N100))
     }else{
@@ -284,9 +270,9 @@ adacs_ProFound=function(image=NULL, segim=NULL, objects=NULL, bmask=NULL, skycut
     if(redosky){
       if(redoskysize %% 2 == 0){redoskysize=redoskysize+1}
       if(verbose){message(paste('Doing final aggressive dilation -',round(proc.time()[3]-timestart,3),'sec'))}
-      objects_redo=adacs_MakeSegimDilate(segim=objects, bmask=bmask, size=redoskysize, shape=shape, sky=sky, verbose=verbose, plot=FALSE, stats=FALSE, rotstats=FALSE)$objects
+      bobjects_redo = adacs_MakeSegimDilateBitMatrix(bobjects=bobjects, bmask=bmask, size=redoskysize, shape=shape, sky=sky, verbose=verbose, plot=FALSE, stats=FALSE, rotstats=FALSE)$bobjects
       if(verbose){message(paste('Making final sky map -',round(proc.time()[3]-timestart,3),'sec'))}
-      sky=adacs_MakeSkyGrid(image=image, objects=objects_redo, bmask=bmask, box=box, grid=grid, boxadd=boxadd,
+      sky=adacs_MakeSkyGrid(image=image, bobjects=bobjects_redo, bmask=bmask, box=box, grid=grid, boxadd=boxadd,
                                           type=type, skytype=skytype, skyRMStype=skyRMStype, sigmasel=sigmasel,
                                           skypixmin=skypixmin, boxiters=boxiters, doclip=doclip, scratch=scratch)
       skyRMS=sky$skyRMS
@@ -297,14 +283,14 @@ adacs_ProFound=function(image=NULL, segim=NULL, objects=NULL, bmask=NULL, skycut
       if(verbose){print(summary(as.numeric(skyRMS)))}
     }else{
       if(verbose){message("Skipping making final sky map - redosky set to FALSE")}
-      objects_redo=NULL
+      bobjects_redo=NULL
     }
     
     Norig=tabulate(segim_orig)
     
     if(pixelcov){
       if(verbose){message(paste('Calculating pixel covariance -',round(proc.time()[3]-timestart,3),'sec'))}
-      cor_err_func=adacs_PixelCorrelation(image=image, objects=objects,  bmask=bmask, sky=sky, skyRMS=skyRMS, fft=FALSE, lag=apply(expand.grid(c(1,2,4),c(1,10,100,1000,1e4)),MARGIN=1,FUN=prod))$cor_err_func
+      cor_err_func=adacs_PixelCorrelation(image=image, bobjects=bobjects,  bmask=bmask, sky=sky, skyRMS=skyRMS, fft=FALSE, lag=apply(expand.grid(c(1,2,4),c(1,10,100,1000,1e4)),MARGIN=1,FUN=prod))$cor_err_func
     }else{
       cor_err_func=NULL
     }
@@ -314,8 +300,8 @@ adacs_ProFound=function(image=NULL, segim=NULL, objects=NULL, bmask=NULL, skycut
       sky=0
       skyRMS=0
       segim_orig=NULL
-      objects=NULL
-      objects_redo=NULL
+      bobjects=NULL
+      bobjects_redo=NULL
     }
     
     if(stats & !is.null(image)){
@@ -445,7 +431,7 @@ adacs_ProFound=function(image=NULL, segim=NULL, objects=NULL, bmask=NULL, skycut
     segstats[,grep('flux',colnames(segstats))]=fluxscale*segstats[,grep('flux',colnames(segstats))]
     
     if(verbose){message(paste('ProFound is finished! -',round(proc.time()[3]-timestart,3),'sec'))}
-    output=list(segim=segim, segim_orig=segim_orig, objects=objects, objects_redo=objects_redo, sky=sky, skyRMS=skyRMS, image=image, bmask=bmask, segstats=segstats, Nseg=dim(segstats)[1], near=near, group=group, groupstats=groupstats, haralick=haralick, header=header, SBlim=SBlim, magzero=magzero, dim=dim(segim), pixscale=pixscale, skyarea=skyarea, gain=gain, call=call, date=date(), time=proc.time()[3]-timestart, ProFound.version=packageVersion('ProFound'), R.version=R.version)
+    output=list(segim=segim, segim_orig=segim_orig, bobjects=bobjects, bobjects_redo=bobjects_redo, sky=sky, skyRMS=skyRMS, image=image, bmask=bmask, segstats=segstats, Nseg=dim(segstats)[1], near=near, group=group, groupstats=groupstats, haralick=haralick, header=header, SBlim=SBlim, magzero=magzero, dim=dim(segim), pixscale=pixscale, skyarea=skyarea, gain=gain, call=call, date=date(), time=proc.time()[3]-timestart, ProFound.version=packageVersion('ProFound'), R.version=R.version)
     }else{
     if(is.null(header)){header=NULL}
     if(keepim==FALSE){image=NULL; mask=NULL; bmask=NULL}
@@ -453,7 +439,7 @@ adacs_ProFound=function(image=NULL, segim=NULL, objects=NULL, bmask=NULL, skycut
     if(!is.null(badpix)){image[badpix]=NA}
     if(verbose){message('No objects in segmentation map - skipping dilations and CoG')}
     if(verbose){message(paste('ProFound is finished! -',round(proc.time()[3]-timestart,3),'sec'))}
-    output=list(segim=NULL, segim_orig=NULL, objects=NULL, objects_redo=NULL, sky=sky, skyRMS=skyRMS, image=image, bmask=bmask, segstats=NULL, Nseg=0, near=NULL, group=NULL, groupstats=NULL, haralick=NULL, header=header, SBlim=NULL,  magzero=magzero, dim=dim(segim), pixscale=pixscale, skyarea=skyarea, gain=gain, call=call, date=date(), time=proc.time()[3]-timestart, ProFound.version=packageVersion('ProFound'), R.version=R.version)
+    output=list(segim=NULL, segim_orig=NULL, bobjects=NULL, bobjects_redo=NULL, sky=sky, skyRMS=skyRMS, image=image, bmask=bmask, segstats=NULL, Nseg=0, near=NULL, group=NULL, groupstats=NULL, haralick=NULL, header=header, SBlim=NULL,  magzero=magzero, dim=dim(segim), pixscale=pixscale, skyarea=skyarea, gain=gain, call=call, date=date(), time=proc.time()[3]-timestart, ProFound.version=packageVersion('ProFound'), R.version=R.version)
   }
   class(output)='profound'
   invisible(output)

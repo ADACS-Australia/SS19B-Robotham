@@ -138,6 +138,14 @@ Rcpp::Function quantile=rstats["quantile"];
         current     = _data[word] & (1 << bit);
         return ~current;
     }
+    
+    int BitMatrix::nrow() const {
+      return _nrows;
+    }
+    
+    int BitMatrix::ncol() const {
+      return _ncols;
+    }
 
     std::vector<int> BitMatrix::which(NumericVector x, Function f, List args) {
         std::vector<int> ind = as< std::vector<int> >(f(x, args));
@@ -172,6 +180,30 @@ Rcpp::Function quantile=rstats["quantile"];
         for (int j = 0; j < ncol; j++) {
           if (!std::isnan(x(i,j)) && x(i,j)==value) {
             settrue(i,j);
+          }
+        }
+      }
+    }
+    
+    void BitMatrix::clearValue(IntegerMatrix x, int value) {
+      int nrow = x.nrow();
+      int ncol = x.ncol();
+      for (int i = 0; i < nrow; i++) {
+        for (int j = 0; j < ncol; j++) {
+          if (x(i,j)==value) {
+            setfalse(i,j);
+          }
+        }
+      }
+    }
+    
+    void BitMatrix::copyTo(IntegerMatrix mask) {
+      for (int j=0;j<_ncols;j++) {
+        for (int i=0;i<_nrows;i++) {
+          if (istrue(i,j)) {
+            mask(i,j) = 1;
+          } else {
+            mask(i,j) = 0;
           }
         }
       }
@@ -277,8 +309,8 @@ Rcpp::Function quantile=rstats["quantile"];
 #define MAX(a,b) (a)>(b)?(a):(b)
 #define MIN(a,b) (a)<(b)?(a):(b)
 #define ABS(a) (a)<0?(-a):(a)
-    Rcpp::NumericVector Adacs::Cadacs_FindSkyCellValues(Rcpp::NumericMatrix image, Rcpp::Nullable<Rcpp::IntegerMatrix> objects,
-                                                        BitMatrix & bmask, 
+    Rcpp::NumericVector Adacs::Cadacs_FindSkyCellValues(Rcpp::NumericMatrix image,
+                                                        BitMatrix & bobjects, BitMatrix & bmask, 
                                                         const double loc1, const double loc2, const double box1, const double box2, const double boxadd1, const double boxadd2, 
                                                         const int skypixmin, const int boxiters)
     {
@@ -293,12 +325,6 @@ Rcpp::Function quantile=rstats["quantile"];
       //Rcpp::Rcout << "\nCbox "<<ssrow<<" "<<eerow<<" "<<sscol<<" "<<eecol<<"\n";
       
       const double_t* iiimage=REAL(image);
-      Rcpp::IntegerMatrix iobjects;
-      const int32_t* iiobjects=NULL;
-      if (objects.isNotNull()) {
-        iobjects = Rcpp::as<Rcpp::IntegerMatrix>(objects);
-        iiobjects=INTEGER(objects.get());
-      }
       
       int iboxadd1=0;
       int iboxadd2=0;
@@ -322,14 +348,8 @@ Rcpp::Function quantile=rstats["quantile"];
           int ii=(j-1)*ncol+(ssrow-1);
           for (int i = ssrow; i <= eerow; i++,ii++) {
             // Count sky cells (sky cells are those NOT masked out and NOT objects)
-            if ((iiobjects!=NULL)) {
-              if (iiobjects[ii]==0 && bmask._isfalse(i, j)) {
-                skyN++;
-              }
-            } else {
-              if (bmask._isfalse(i, j)) {
-                skyN++;
-              }
+            if (bobjects._isfalse(i,j) && bmask._isfalse(i, j)) {
+              skyN++;
             }
           }
         }
@@ -344,14 +364,8 @@ Rcpp::Function quantile=rstats["quantile"];
       for (int j = sscol; j <= eecol; j++) {
         int ii=(j-1)*ncol+(ssrow-1);
         for (int i = ssrow; i <= eerow; i++,ii++) {
-          if ((iiobjects!=NULL)) {
-            if (iiobjects[ii]==0 && bmask._isfalse(i, j)) {
-              vec[k++] = iiimage[ii];
-            }
-          } else {
-            if (bmask._isfalse(i, j)) {
-              vec[k++] = iiimage[ii];
-            }
+          if (bobjects._isfalse(i,j) && bmask._isfalse(i, j)) {
+            vec[k++] = iiimage[ii];
           }
         }
       }
@@ -1272,13 +1286,13 @@ Rcpp::Function quantile=rstats["quantile"];
         count += histogram[i];
       }
     }
-    Rcpp::NumericVector Adacs::Cadacs_SkyEstLoc(Rcpp::NumericMatrix image,Rcpp::Nullable<Rcpp::IntegerMatrix> objects,
-                                                BitMatrix & bmask, 
+    Rcpp::NumericVector Adacs::Cadacs_SkyEstLoc(Rcpp::NumericMatrix image,
+                                                BitMatrix & bobjects, BitMatrix & bmask, 
                                                 const double loc1, const double loc2, const double box1, const double box2, 
                                                 const double boxadd1, const double boxadd2, 
                                                 const int skypixmin, const int boxiters, const int doclip, const int skytype, const int skyRMStype, const double sigmasel
     ) {
-      Rcpp::NumericVector select = Cadacs_FindSkyCellValues(image, objects, bmask, loc1, loc2, box1, box2, boxadd1, boxadd2, skypixmin, boxiters);
+      Rcpp::NumericVector select = Cadacs_FindSkyCellValues(image, bobjects, bmask, loc1, loc2, box1, box2, boxadd1, boxadd2, skypixmin, boxiters);
       Rcpp::NumericVector clip;
       if(doclip) {
         clip = Cadacs_magclip(select,adacs_AUTO,5,sigmasel,adacs_LO);
@@ -1395,8 +1409,8 @@ Rcpp::Function quantile=rstats["quantile"];
       result[1] = skyRMSloc;
       return result;
     }
-    void Adacs::Cadacs_MakeSkyGrid(Rcpp::NumericMatrix image,Rcpp::Nullable<Rcpp::IntegerMatrix> objects,
-                            BitMatrix & bmask,
+    void Adacs::Cadacs_MakeSkyGrid(Rcpp::NumericMatrix image,
+                            BitMatrix & bobjects, BitMatrix & bmask,
                             const int box1, const int box2,
                             const int grid1, const int grid2,
                             const int boxadd1, const int boxadd2,
@@ -1459,7 +1473,7 @@ Rcpp::Function quantile=rstats["quantile"];
         x_tile_centre = xseq[i];
         for (int j=1; j<tile_ncols-1; j++) {
           y_tile_centre = yseq[j];
-          Rcpp::NumericVector z_tile_centre = Cadacs_SkyEstLoc(image, objects, bmask,
+          Rcpp::NumericVector z_tile_centre = Cadacs_SkyEstLoc(image, bobjects, bmask,
                                                                x_tile_centre, y_tile_centre,
                                                                box1, box2,
                                                                boxadd1, boxadd2,
