@@ -17,6 +17,7 @@ for (i in seq_along(seq_len(image_resize_steps))) {
 		image = rbind(image, image)
 	}
 }
+result=gc()
 
 # Go, go, go!
 if (what == 'profound-original') {
@@ -48,7 +49,25 @@ if (what == 'profound-original') {
 	)
 	initialiseGlobals(TRUE)
 	result = adacs_MakeSkyGrid(image, box=box, scratch=scratch, bmask=bmask)
-} else if (what == 'baseline') {
+} else if (what == 'baseline1') {
+	mask = matrix(0L,dim(image)[1],dim(image)[2])
+        mask[dim(image)[1],dim(image)[2]] = 1L
+} else if (what == 'baseline2') {
+	bmask = new(BitMatrix,dim(image)[1],dim(image)[2])
+        bmask$settrue(dim(image)[1],dim(image)[2])
+} else if (what == 'baseline3') {
+	mask = matrix(0L,dim(image)[1],dim(image)[2])
+        for (i in 1:dim(image)[1]) {
+            mask[i,i] = 1L
+        }
+        result = which(mask>0)
+} else if (what == 'baseline4') {
+	bmask = new(BitMatrix,dim(image)[1],dim(image)[2])
+        bmask$settrue(dim(image)[1],dim(image)[2])
+        for (i in 1:dim(image)[1]) {
+            bmask$settrue(i,i)
+        }
+        result = bmask$trues()
 } else {
         print(paste("Option not recognised: ",what))
 }

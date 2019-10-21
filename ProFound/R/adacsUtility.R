@@ -268,6 +268,9 @@ adacs_MakeSkyGrid=function(image=NULL, bobjects=NULL, bmask=NULL, box=c(100,100)
   temp_bi_sky = scratch[['scratchSKY']]
   temp_bi_skyRMS = scratch[['scratchSKYRMS']]
   adacs<-new(Adacs)
+  if (is.null(bobjects)) {
+    bobjects = new(BitMatrix, dim(image)[1],dim(image)[2])
+  }
   if (is.null(bmask)) {
     bmask = new(BitMatrix, dim(image)[1], dim(image)[2])
   }

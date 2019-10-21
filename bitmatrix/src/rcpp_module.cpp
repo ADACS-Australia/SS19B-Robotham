@@ -47,7 +47,9 @@ Rcpp::Environment rstats("package:stats");
 Rcpp::Function quantile=rstats["quantile"];
 
 
-    BitMatrix::BitMatrix() {}
+    BitMatrix::BitMatrix() {
+      _isnull = true;
+    }
     BitMatrix::BitMatrix(int nrows, int ncols) {
         // rows are "vertical"
         _nrows = nrows;
@@ -146,6 +148,14 @@ Rcpp::Function quantile=rstats["quantile"];
     int BitMatrix::ncol() const {
       return _ncols;
     }
+    
+    bool BitMatrix::isnull() const {
+      return _isnull;
+    }
+    
+    void BitMatrix::setnull(bool yesno) {
+      _isnull = yesno;
+    }
 
     std::vector<int> BitMatrix::which(NumericVector x, Function f, List args) {
         std::vector<int> ind = as< std::vector<int> >(f(x, args));
@@ -210,7 +220,6 @@ Rcpp::Function quantile=rstats["quantile"];
     }
     
     void BitMatrix::dilate(BitMatrix & kernel) {
-      Rcpp::Rcout << "dilate\n";
       BitMatrix destination;
       destination = *this;
       // convert kernel to search object
@@ -257,19 +266,20 @@ Rcpp::Function quantile=rstats["quantile"];
     
     std::vector<int> BitMatrix::trues(int32_t offset) const {
         std::vector<int> out;
-        out.resize(_npts);
+        //out.resize(_npts);
         int count=0;
         int index=offset;
         for (int j = 0; j < _ncols; j++) {
             for (int i = 0; i < _nrows; i++) {
                 if (istrue(i,j)) {
-                    out[count] = index;
+                    //out[count] = index;
+                    out.push_back(index);
                     count++;
                 }
                 index++;
             }
         }
-        out.resize(count);
+        //out.resize(count);
         return out;
     }
     void Adacs::subset_cpp_inplace(
@@ -358,6 +368,7 @@ Rcpp::Function quantile=rstats["quantile"];
         iboxadd2 = (int)(boxadd2/2);
         
       }
+      //Rcpp::Rcout << " skyN="<<skyN<<"\n";
       // copy sky cell values to vec and return
       Rcpp::NumericVector vec(skyN);
       int k=0;
@@ -1463,7 +1474,7 @@ Rcpp::Function quantile=rstats["quantile"];
         yseq[i] = y_tile_centre;
         y_tile_centre += grid[1];
       }
-      
+
       Rcpp::NumericMatrix z_sky_centre(tile_nrows, tile_ncols);
       Rcpp::NumericMatrix z_skyRMS_centre(tile_nrows, tile_ncols);
       
@@ -1486,8 +1497,7 @@ Rcpp::Function quantile=rstats["quantile"];
           z_sky_centre(i, j) = z_tile_centre[0];
           z_skyRMS_centre(i, j) = z_tile_centre[1];
         }
-      }
-      
+      } 
       if (hasNaNs) {
         // Replace any NaN's with reasonable substitute
         // initialise the pad area before getting the medians

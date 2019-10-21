@@ -132,8 +132,6 @@ adacs_MakeSegimDilate=function(image=NULL, segim=NULL, bmask=NULL, size=9, shape
   if(verbose){message(paste(" - Dilating segments -", round(proc.time()[3]-timestart,3), "sec"))}
   
   if(is.null(expand) | length(expand)==0){
-    objects=matrix(0L,dim(segim)[1],dim(segim)[2])
-    objects[]=as.logical(segim)
     
     if(stats){
       if(verbose){message(paste(" - Calculating segstats -", round(proc.time()[3]-timestart,3), "sec"))}
@@ -143,7 +141,7 @@ adacs_MakeSegimDilate=function(image=NULL, segim=NULL, bmask=NULL, size=9, shape
       segstats=NULL
     }
     
-    return(invisible(list(segim=segim, objects=objects, segstats=segstats, header=header, call=call)))
+    return(invisible(list(segim=segim, segstats=segstats, header=header, call=call)))
   }
   
   if(expand[1]=='all'){

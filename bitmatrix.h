@@ -20,6 +20,8 @@ public:
     bool _isfalse(uint32_t row, uint32_t col) const;
     int nrow() const;
     int ncol() const;
+    void setnull(bool yesno);
+    bool isnull() const;
 
     std::vector<int> which(NumericVector x, Function f, List args);
 
@@ -33,11 +35,12 @@ public:
     std::vector<int> _trues() const;                // 1 relative
 
 private:
-    uint32_t _nrows;
-    uint32_t _ncols;
-    uint32_t _npts;
-    uint32_t _n32bitwords;
-    std::vector<uint32_t> _data;
+  bool _isnull;
+  uint32_t _nrows;
+  uint32_t _ncols;
+  uint32_t _npts;
+  uint32_t _n32bitwords;
+  std::vector<uint32_t> _data;
 };
 /**
  *  Represents an Akima spline
@@ -181,6 +184,8 @@ RCPP_MODULE(yada){
     .const_method("trues", &BitMatrix::_trues, "which are true.  1 relative")
     .const_method("nrow", &BitMatrix::nrow, "return matrix nrows")
     .const_method("ncol", &BitMatrix::ncol, "return matrix ncols")
+    .const_method("isnull", &BitMatrix::isnull, "is this object null or not null")
+    .method("setnull", &BitMatrix::setnull, "set this object as null or not null")
     .method("dilate", &BitMatrix::dilate, "apply the morphological dilate operation")
     ;
 
