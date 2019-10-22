@@ -32,17 +32,18 @@ what=$1
 # scale=2 is 712x712
 # scale=3 is 1424x712
 # and so forth...
-start_experiment "Profiling image size v/s time for box = 20"
+rm -f mask_$what.csv
+start_experiment "Profiling image size v/s time for box = 20" >> mask_$what.csv
 for image_scale_steps in 0 2 4 6 8; do
-	run_profound 20 $image_scale_steps
+	run_profound 20 $image_scale_steps >> mask_$what.csv
 done
 
 start_experiment "Profiling box size v/s memory for image_size = 7.7 Mpix"
 for box_size in 10 20 30 40 50 60; do
-	run_profound $box_size 6
+	run_profound $box_size 6 >> mask_$what.csv
 done
 
 start_experiment "Profiling box size v/s memory for image_size = 30.9 Mpix"
 for box_size in 10 20 30 40 50 60; do
-	run_profound $box_size 8
+	run_profound $box_size 8 >> mask_$what.csv
 done
