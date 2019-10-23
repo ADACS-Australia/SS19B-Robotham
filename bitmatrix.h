@@ -4,6 +4,23 @@
 //#include "bitmatrix_RcppExports.h"
 using namespace Rcpp;
 
+typedef struct {
+  int yOffset;
+  int xOffset1;
+  int xOffset2;
+  int n;
+} chord;
+
+typedef struct {
+  chord *C;
+  int CLength;
+  int minYoffset;
+  int maxYoffset;
+  int minXoffset;
+  int maxXoffset;
+  int maxN;
+} chordSet;
+
 class BitMatrix {
 public:
     BitMatrix();
@@ -29,12 +46,16 @@ public:
     void maskValue(NumericMatrix x, double value);
     void clearValue(IntegerMatrix x, int value);
     void copyTo(IntegerMatrix x);
-    void dilate(BitMatrix & kernrel);
+    void dilate(BitMatrix & kernel);
+    void dilatefast(SEXP kernel);
 
     std::vector<int> trues(int32_t offset=0) const; // 0 relative
     std::vector<int> _trues() const;                // 1 relative
 
 private:
+  void _dilated (int nx, int ny, int nz, chordSet *set, int ***T);
+  void dilate_line(int ***, BitMatrix & destination, chordSet *, int, int);
+  void compute_lookup_table_for_line_dilate(int ***T, int yOff, int line, chordSet *set, int nx, int ny);
   bool _isnull;
   uint32_t _nrows;
   uint32_t _ncols;
@@ -187,6 +208,7 @@ RCPP_MODULE(yada){
     .const_method("isnull", &BitMatrix::isnull, "is this object null or not null")
     .method("setnull", &BitMatrix::setnull, "set this object as null or not null")
     .method("dilate", &BitMatrix::dilate, "apply the morphological dilate operation")
+    .method("dilatefast", &BitMatrix::dilatefast, "apply the morphological dilate operation. ported from EBImage")
     ;
 
     class_<Adacs>("Adacs")

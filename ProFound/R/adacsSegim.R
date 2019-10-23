@@ -223,7 +223,7 @@ adacs_MakeSegimDilateBitMatrix=function(bobjects=bobjects, bmask=NULL, size=9, s
   }
   
   if(expand[1]=='all'){
-    bobjects$dilate(bkern)
+    bobjects$dilatefast(kern)
   }
   
   if(verbose){message(paste(" - profoundMakeSegimDilate is finished! -", round(proc.time()[3]-timestart,3), "sec"))}

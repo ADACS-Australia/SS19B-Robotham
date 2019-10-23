@@ -46,6 +46,23 @@
 Rcpp::Environment rstats("package:stats");
 Rcpp::Function quantile=rstats["quantile"];
 
+#include "Rdefines.h"
+typedef struct {
+  int x, y;
+} PointXY;
+
+#define INDEX_FROM_XY(x, y, xsize) ((x) + (y) * (xsize))
+#define POINT_FROM_INDEX(pt, index, xsize) pt.x = index % xsize; pt.y = index / xsize;
+
+#define DILATE 0
+
+#define BUF_LENGTH 10
+
+#define CHECK_BUFFER(pointer, occupied, buffer, type) \
+if (occupied == buffer) {                             \
+  buffer += BUF_LENGTH;                               \
+  pointer = R_Realloc(pointer, buffer, type);         \
+}
 
     BitMatrix::BitMatrix() {
       _isnull = true;
@@ -1562,3 +1579,191 @@ Rcpp::Function quantile=rstats["quantile"];
           }
         }
     }
+    
+// dilute
+//===========
+/* use custom templates rather than std::numeric_limits to avoid dependency on C++11 due to lowest() */
+#define MIN_VALUE true
+#define MAX_VALUE false
+
+template <typename type> const type limits(const bool);
+
+template <> const int limits(const bool min) {
+  return min ? INT_MIN : INT_MAX;
+}
+
+template <> const double limits(const bool min) {
+  return min ? -DBL_MAX : DBL_MAX;
+}
+
+template <typename type> chordSet buildChordSet(type *, PointXY);
+template <typename type> type*** allocate_lookup_table(chordSet *, int);
+template <typename type> void free_lookup_table(type ***, chordSet *);
+
+template <typename type> chordSet buildChordSet(type * kern, PointXY ksize) {
+  PointXY korigin;
+  korigin.x = (int) ceil((float)ksize.x / 2) - 1; // -1 due to 0-based indices
+  korigin.y = (int) ceil((float)ksize.y / 2) - 1;
+  
+  chordSet set = {NULL, 0, korigin.y, -korigin.y, korigin.x, -korigin.x, 0};
+  
+  int CBufLength = 0;
+  set.C = R_Calloc(BUF_LENGTH, chord);
+  CBufLength = BUF_LENGTH;
+  for (int i = 0; i < ksize.y; ++i) {
+    type prevValue = 0;
+    int beginChord = 0;
+    for (int j = 0; j <= ksize.x; ++j) {
+      type value = (j < ksize.x ? kern[INDEX_FROM_XY(j, i, ksize.x)] : 0);
+      if (value == 0 && prevValue != 0) {
+        chord c;
+        c.yOffset = i - korigin.y;
+        c.xOffset1 = beginChord - korigin.x;
+        c.n = 0;
+        int length = j - beginChord;
+        if (length > 1) c.n = (int) floor(log2(length-1));
+        c.xOffset2 = j - korigin.x - (int) pow(2.0, c.n);
+        int xEnd = j - korigin.x - 1;
+        
+        set.C[set.CLength++] = c;
+        CHECK_BUFFER(set.C, set.CLength, CBufLength, chord);
+        
+        if (c.yOffset < set.minYoffset)
+          set.minYoffset = c.yOffset;
+        else if (c.yOffset > set.maxYoffset)
+          set.maxYoffset = c.yOffset;
+        if (c.xOffset1 < set.minXoffset)
+          set.minXoffset = c.xOffset1;
+        if (xEnd > set.maxXoffset)
+          set.maxXoffset = xEnd;
+        if (c.n > set.maxN)
+          set.maxN = c.n;
+      } else if (value != 0 && prevValue == 0) {
+        beginChord = j;
+      }
+      prevValue = value;
+    }
+  }
+  
+  return set;
+}
+
+template <typename type> type*** allocate_lookup_table(chordSet *set, int width) {
+  type ***T;
+  T = R_Calloc(set->maxYoffset - set->minYoffset + 1, type**); // + 1 for offset of 0
+  T = T - set->minYoffset;
+  
+  int Txlength = width - set->minXoffset + set->maxXoffset + 1;
+  for (int i = set->minYoffset; i <= set->maxYoffset; ++i) {
+    T[i] = R_Calloc(set->maxN + 1, type*);
+    for (int j = 0, d = 1; j <= set->maxN; ++j, d *= 2) {
+      T[i][j] = R_Calloc(Txlength - d, type);
+      T[i][j] = T[i][j] - set->minXoffset;
+    }
+  }
+  return T;
+}
+
+template <typename type> void free_lookup_table(type ***T, chordSet *set) {
+  for (int i = set->minYoffset; i <= set->maxYoffset; ++i) {
+    for (int j = 0; j < set->maxN; j++) {
+      type *first = T[i][j] + set->minXoffset;
+      R_Free(first);
+    }
+    R_Free(T[i]);
+  }
+  type ***first = T + set->minYoffset;
+  R_Free(first);
+}
+
+void BitMatrix::compute_lookup_table_for_line_dilate(int ***T, int yOff, int line, chordSet *set, int nx, int ny) {
+  PointXY size;
+  size.x = nx;
+  size.y = ny;
+  const int MIN_VAL = limits<int>(MIN_VALUE);
+  
+  int y = line + yOff;
+  
+  if (y < 0 || y >= size.y) {
+    for (int i = set->minXoffset; i < size.x + set->maxXoffset; ++i) {
+      T[yOff][0][i] = MIN_VAL;
+    }
+  }
+  else {
+    int maxX = MIN(size.x, size.x + set->maxXoffset);
+    int i = set->minXoffset;
+    
+    for (; i < 0; ++i) {
+      T[yOff][0][i] = MIN_VAL;
+    }
+    for (; i < maxX; ++i) {
+      int val = istrue(i,y);
+      T[yOff][0][i] = val;
+    }
+    for (; i < size.x + set->maxXoffset; ++i) {
+      T[yOff][0][i] = MIN_VAL;
+    }
+  }
+  
+  for (int i = 1, d = 1; i <= set->maxN; ++i, d *= 2) {
+    for (int j = set->minXoffset; j <= size.x + set->maxXoffset - 2 * d; ++j) {
+      T[yOff][i][j] = MAX(T[yOff][i - 1][j], T[yOff][i - 1][j + d]);
+    }
+  }
+}
+
+void BitMatrix::dilate_line(int ***T, BitMatrix & destination, chordSet *set, int line, int width) {
+  for (int i = 0; i < width; ++i) {
+    {
+      for (int j = 0; j < set->CLength; ++j) {
+        int v = MAX(T[set->C[j].yOffset][set->C[j].n][i + set->C[j].xOffset1], T[set->C[j].yOffset][set->C[j].n][i + set->C[j].xOffset2]);
+        if (v==1)
+          destination.settrue(i,line);
+      }
+    }
+  }
+}
+
+void BitMatrix::_dilated (int nx, int ny, int nz, chordSet *set, int ***T) {
+  BitMatrix destination;
+  destination = *this;
+  PointXY size;
+  size.x = nx;
+  size.y = ny;
+    for (int j = set->minYoffset; j <= set->maxYoffset; ++j) {
+      compute_lookup_table_for_line_dilate(T, j, 0, set, size.x , size.y);
+    }
+    dilate_line(T, destination, set, 0, size.x);
+    for (int j = 1; j < size.y; ++j) {
+      int **first = T[set->minYoffset];
+      for (int k = set->minYoffset; k < set->maxYoffset; ++k) {
+        T[k] = T[k + 1];
+      }
+      T[set->maxYoffset] = first;
+      compute_lookup_table_for_line_dilate(T, set->maxYoffset, j, set, size.x, size.y);
+      dilate_line(T, destination, set, j, size.x);
+    }
+  *this = destination;
+}
+
+void BitMatrix::dilatefast (SEXP kernel) {
+  
+  PointXY size;
+  size.x = _nrows;
+  size.y = _ncols;
+  int nz = 1;
+  
+  PointXY ksize;
+  ksize.x = INTEGER ( GET_DIM(kernel) )[0];
+  ksize.y = INTEGER ( GET_DIM(kernel) )[1];
+  
+  chordSet set=buildChordSet<int>(INTEGER(kernel), ksize);
+  int ***T = allocate_lookup_table<int>(&set, size.x);
+  
+  _dilated(size.x, size.y , nz, &set, T);
+  
+  free_lookup_table<int>(T, &set);
+  R_Free(set.C);
+}
+
+
