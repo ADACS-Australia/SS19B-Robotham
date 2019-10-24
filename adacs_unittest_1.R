@@ -7,6 +7,8 @@ initialiseGlobals(TRUE)
 # keywords to enum check (The C/C++ uses integers to represent enums)
 print("############# START OF TESTS #########")
 
+# checking enumForKeyword vs Globals
+
 checkEquals(doRMNA, FALSE, "doRMNA")
 checkIdentical(MEDIAN, enumForKeyword("median"), "median")
 checkIdentical(MEAN, enumForKeyword("mean"), "mean")
@@ -26,5 +28,10 @@ checkIdentical(AUTO, enumForKeyword("auto"), "auto")
 checkIdentical(SET, enumForKeyword("set"), "set")
 checkIdentical(CLASSIC_BILINEAR, enumForKeyword("bilinear"), "Classic Bilinear")
 checkIdentical(AKIMA_BICUBIC, enumForKeyword("bicubic"), "Akima Bicubic")
+
+# check compareNA
+checkIdentical(c(TRUE, TRUE, FALSE), compareNA(c(10, 10, 10), c(10, 10, 20)))
+checkIdentical(is.na(NULL), compareNA(NULL, NULL))
+
 
 print("############# END OF TESTS ##########")
