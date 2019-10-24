@@ -5,6 +5,18 @@
 
 using namespace Rcpp;
 
+// dilate_cpp
+IntegerMatrix dilate_cpp(IntegerMatrix segim, IntegerMatrix kern);
+RcppExport SEXP _ProFound_dilate_cpp(SEXP segimSEXP, SEXP kernSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< IntegerMatrix >::type segim(segimSEXP);
+    Rcpp::traits::input_parameter< IntegerMatrix >::type kern(kernSEXP);
+    rcpp_result_gen = Rcpp::wrap(dilate_cpp(segim, kern));
+    return rcpp_result_gen;
+END_RCPP
+}
 // water_cpp
 Rcpp::IntegerMatrix water_cpp(Rcpp::NumericVector image, const int nx, const int ny, const double abstol, const double reltol, const double cliptol, const int ext, const double skycut, const int pixcut, const bool verbose, const int Ncheck);
 RcppExport SEXP _ProFound_water_cpp(SEXP imageSEXP, SEXP nxSEXP, SEXP nySEXP, SEXP abstolSEXP, SEXP reltolSEXP, SEXP cliptolSEXP, SEXP extSEXP, SEXP skycutSEXP, SEXP pixcutSEXP, SEXP verboseSEXP, SEXP NcheckSEXP) {
@@ -72,6 +84,7 @@ END_RCPP
 }
 
 static const R_CallMethodDef CallEntries[] = {
+    {"_ProFound_dilate_cpp", (DL_FUNC) &_ProFound_dilate_cpp, 2},
     {"_ProFound_water_cpp", (DL_FUNC) &_ProFound_water_cpp, 11},
     {"_ProFound_order_cpp", (DL_FUNC) &_ProFound_order_cpp, 1},
     {"_ProFound_tabulate_cpp", (DL_FUNC) &_ProFound_tabulate_cpp, 2},

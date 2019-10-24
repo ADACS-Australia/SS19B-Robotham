@@ -215,21 +215,12 @@ profoundMakeSegim=function(image=NULL, mask=NULL, objects=NULL, skycut=1, pixcut
   }
   if(verbose){message(paste(" - Watershed de-blending -", round(proc.time()[3]-timestart,3), "sec"))}
   if(any(image>0)){
-    if(watershed=='EBImage'){
-      if(!requireNamespace("EBImage", quietly = TRUE)){
-        stop('The EBImage package is needed for this function to work. Please install it from Bioconductor.', call. = FALSE)
-      }
-      image[image<skycut]=0
-      segim=EBImage::imageData(EBImage::watershed(image,tolerance=tolerance,ext=ext))
-      segtab=tabulate(segim)
-      segim[segim %in% which(segtab<pixcut)]=0L
-      mode(segim)='integer'
-    }else if(watershed=='ProFound'){
+    if(watershed=='ProFound'){
       segim=water_cpp(image=image, nx=dim(image)[1], ny=dim(image)[2], abstol=tolerance, reltol=reltol, cliptol=cliptol, ext=ext, skycut=skycut, pixcut=pixcut, verbose=verbose)
     }else if(watershed=='ProFound-old'){
       segim=water_cpp_old(image=image, nx=dim(image)[1], ny=dim(image)[2], abstol=tolerance, reltol=reltol, cliptol=cliptol, ext=ext, skycut=skycut, pixcut=pixcut, verbose=verbose)
     }else{
-      stop('watershed option must either be EBImage/ProFound/ProFound-old!')
+      stop('watershed option must either be ProFound/ProFound-old!')
     }
   }else{
     segim=image
@@ -275,10 +266,6 @@ profoundMakeSegimDilate=function(image=NULL, segim=NULL, mask=NULL, size=9, shap
   
   call=match.call()
   
-  if(!requireNamespace("EBImage", quietly = TRUE)){
-    stop('The EBImage package is needed for this function to work. Please install it from Bioconductor.', call. = FALSE)
-  }
-  
   #Treat image NAs as masked regions:
   
   if(!is.null(mask) & !is.null(image)){
@@ -295,7 +282,7 @@ profoundMakeSegimDilate=function(image=NULL, segim=NULL, mask=NULL, size=9, shap
     if(verbose){message(paste(' - Extracted pixel scale from header provided:',round(pixscale,3),'asec/pixel.'))}
   }
   
-  kern = EBImage::makeBrush(size, shape=shape)
+  kern = .makeBrush(size, shape=shape)
   
   if(verbose){message(paste(" - Dilating segments -", round(proc.time()[3]-timestart,3), "sec"))}
   
@@ -315,29 +302,15 @@ profoundMakeSegimDilate=function(image=NULL, segim=NULL, mask=NULL, size=9, shap
   }
   
   if(expand[1]=='all'){
-    segim_new=segim
-    maxorig=max(segim_new, na.rm=doRMNA)+1L
-    replace=which(segim_new!=0)
-    segim_new[replace]=maxorig-segim_new[replace]
-    segim_new=EBImage::imageData(EBImage::dilate(segim_new, kern)) #Run Dilate
-    replace=which(segim_new!=0)
-    segim_new[replace]=maxorig-segim_new[replace]
-    replace=which(segim!=0) #put back non-dilated segments
-    segim_new[replace]=segim[replace] #put back non-dilated segments
+    segim_new = .dilate_cpp(segim, kern)
   }else{
     segim_new=segim
-    #segim_new[!(segim_new %in% expand)]=0L #remove things that will not be dilated
     if('fastmatch' %in% .packages()){ #remove things that will not be dilated
       segim_new[fastmatch::fmatch(segim_new, expand, nomatch = 0L) == 0L] = 0L
     }else{
       segim_new[!(segim_new %in% expand)] = 0L
     }
-    maxorig=max(segim_new, na.rm=doRMNA)+1L
-    replace=which(segim_new!=0)
-    segim_new[replace]=maxorig-segim_new[replace]
-    segim_new=EBImage::imageData(EBImage::dilate(segim_new, kern)) #Run Dilate
-    replace=which(segim_new!=0)
-    segim_new[replace]=maxorig-segim_new[replace]
+    segim_new = .dilate_cpp(segim_new, kern)
     replace=which(segim!=0) #put back non-dilated segments
     segim_new[replace]=segim[replace] #put back non-dilated segments
     rm(replace)
@@ -371,55 +344,6 @@ profoundMakeSegimDilate=function(image=NULL, segim=NULL, mask=NULL, size=9, shap
   if(verbose){message(paste(" - profoundMakeSegimDilate is finished! -", round(proc.time()[3]-timestart,3), "sec"))}
   
   return(invisible(list(segim=segim_new, objects=objects, segstats=segstats, header=header, call=call)))
-}
-
-profoundMakeSegimPropagate=function(image=NULL, segim=NULL, objects=NULL, mask=NULL, sky=0, lambda=1e-4, plot=FALSE, ...){
-  
-  if(!requireNamespace("EBImage", quietly = TRUE)){
-    stop('The EBImage package is needed for this function to work. Please install it from Bioconductor.', call. = FALSE)
-  }
-  
-  if(!is.null(mask)){
-    mask[is.na(image)]=1L
-  }else{
-    if(anyNA(image)){
-      mask=matrix(0L,dim(image)[1],dim(image)[2])
-      mask[is.na(image)]=1L
-    }
-  }
-  
-  if(is.null(objects)){
-    if(!is.null(segim)){
-      objects=matrix(0L,dim(segim)[1],dim(segim)[2])
-      objects[]=as.logical(segim)
-    }
-  }
-  
-  image_sky=image-sky
-  
-  rm(image)
-  rm(sky)
-  
-  if(is.null(mask)){
-    propim=EBImage::imageData(EBImage::propagate(image_sky, seeds=segim, lambda=lambda))
-  }else{
-    #Because EBImage is odd we need to use mask to mean pixels to be propagated, i.e. where the ProFound mask=0
-    propim=EBImage::imageData(EBImage::propagate(image_sky, seeds=segim, mask=(mask==0), lambda=lambda))
-  }
-  mode(propim)='integer'
-  
-  rm(segim)
-  rm(mask)
-  
-  propim_sky=propim
-  propim_sky[objects>0]=0L
-  mode(propim_sky)='integer'
-  
-  if(plot){
-    profoundSegimPlot(image=image_sky, segim=propim, mask=mask, ...)
-  }
-  
-  invisible(list(propim=propim, propim_sky=propim_sky))
 }
 
 profoundSegimStats=function(image=NULL, segim=NULL, mask=NULL, sky=NULL, skyRMS=NULL, magzero=0, gain=NULL, pixscale=1, header=NULL, sortcol='segID', decreasing=FALSE, rotstats=FALSE, boundstats=FALSE, offset=1, cor_err_func=NULL, app_diam=1){
@@ -994,4 +918,69 @@ profoundSegimExtend=function(image=NULL, segim=NULL, mask=segim, ...){
   setkey(output, segID)
   
   return(as.data.frame(output))
+}
+
+.makeBrush = function(size, shape=c('box', 'disc', 'diamond', 'Gaussian', 'line'), step=TRUE, sigma=0.3, angle=45) {
+  if(! (is.numeric(size) && (length(size)==1L) && (size>=1)) ) stop("'size' must be an odd integer.")
+  shape = match.arg(arg = tolower(shape), choices = c('box', 'disc', 'diamond', 'gaussian', 'line'))
+  
+  if(size %% 2 == 0){
+    size = size + 1
+    warning(paste("'size' was rounded to the next odd number: ", size))
+  }
+  
+  if (shape=='box') z = matrix(1L, size, size)
+  else if (shape == 'line') {
+    angle = angle %% 180
+    angle.radians = angle * pi / 180;
+    tg = tan(angle.radians)
+    sizeh = (size-1)/2
+    if ( angle < 45 || angle > 135) {
+      z.x = sizeh
+      z.y = round(sizeh*tg)
+    }
+    else {
+      z.y = sizeh
+      z.x = round(sizeh/tg)
+    }
+    z = array(0L, dim=2*c(z.x, z.y)+1);
+    for (i in -sizeh:sizeh) {
+      if ( angle < 45 || angle > 135) {
+        ## scan horizontally
+        i.x = i
+        i.y = round(i*tg)
+      }
+      else {
+        ## scan vertically
+        i.y = i
+        i.x = round(i/tg) 
+      }
+      z[i.x+z.x+1, i.y+z.y+1] = 1L
+    }
+  }
+  else if (shape=='gaussian') {
+    x = seq(-(size-1)/2, (size-1)/2, length=size)
+    x = matrix(x, size, size)
+    z = exp(- (x^2 + t(x)^2) / (2*sigma^2))
+    z = z / sum(z)
+  } else {
+    ## pixel center coordinates
+    x = 1:size -((size+1)/2)
+    
+    ## for each pixel, compute the distance from its center to the origin, using L1 norm ('diamond') or L2 norm ('disc')
+    if (shape=='disc') {
+      z = outer(x, x, FUN=function(X,Y) (X*X+Y*Y))
+      mz = (size/2)^2
+      z = (mz - z)/mz
+      z = sqrt(ifelse(z>0, z, 0))
+    } else {
+      z = outer(x, x, FUN=function(X,Y) (abs(X)+abs(Y)))
+      mz = (size/2)
+      z = (mz - z)/mz
+      z = ifelse(z>0, z, 0)
+    }
+    
+    if (step) z = ifelse(z>0, 1L, 0L)
+  }
+  z
 }

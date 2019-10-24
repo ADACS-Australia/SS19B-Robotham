@@ -43,6 +43,10 @@
 #define adacs_CLASSIC_BILINEAR 1
 #define adacs_AKIMA_BICUBIC 2
 
+#define MAX(a,b) (a)>(b)?(a):(b)
+#define MIN(a,b) (a)<(b)?(a):(b)
+#define ABS(a) (a)<0?(-a):(a)
+
 Rcpp::Environment rstats("package:stats");
 Rcpp::Function quantile=rstats["quantile"];
 
@@ -277,6 +281,47 @@ if (occupied == buffer) {                             \
       *this = destination;
     }
 
+void BitMatrix::dilatesmarter(BitMatrix & kernel) {
+  BitMatrix destination;
+  destination = *this;
+  // convert kernel to search object
+  std::vector<int32_t> krow;
+  std::vector<int32_t> kcol;
+  krow.resize(kernel._npts);
+  kcol.resize(kernel._npts);
+  int length=0;
+  int midrow=kernel._nrows/2;
+  int midcol=kernel._ncols/2;
+  for (int i=0;i<kernel._ncols;i++) {
+    for (int j=0;j<kernel._nrows;j++) {
+      if (kernel.istrue(j,i)) {
+        krow[length] = j-midrow;
+        kcol[length] = i-midcol;
+        length++;
+      }
+    }
+  }
+  krow.resize(length);
+  kcol.resize(length);
+  
+  // apply the dilate operation (slowly)
+  for (int i=0; i<_ncols; i++) {
+    for (int j=0; j<_nrows; j++) {
+      if (istrue(j,i)) {
+        for (int k=0; k<length; k++) {
+          int ik=i+kcol[k];
+          int jk=j+krow[k];
+          if (ik<0 || ik>=_ncols || jk<0 || jk>=_nrows) continue; // outside
+          if (isfalse(jk,ik)) {
+            destination.settrue(jk,ik);
+          }
+        }
+      }
+    }
+  }
+  *this = destination;
+}
+
     std::vector<int> BitMatrix::_trues() const {
       return trues(1);
     }
@@ -299,6 +344,185 @@ if (occupied == buffer) {                             \
         //out.resize(count);
         return out;
     }
+
+AdacsHistogram::AdacsHistogram() {
+  
+}
+void AdacsHistogram::accumulate(Rcpp::NumericVector x,int nbins, double minv, double maxv) {
+  _nbins = nbins;
+  const double_t* iiix=REAL(x);
+  int size = x.size();
+  std::vector<double_t> myx (iiix, iiix+size);
+  _min=std::numeric_limits<double>::max();
+  _max=-_min;
+  _non_null_sample_count=0;
+  _null_sample_count=0;
+  for (int i=0;i<size;i++)
+  {
+    if (!std::isnan(myx[i])) {
+      _non_null_sample_count++;
+      _min = MIN(_min,myx[i]);
+      _max = MAX(_max,myx[i]);
+    }
+  }
+  _null_sample_count = size-_non_null_sample_count;
+  
+  if (_non_null_sample_count<1)
+    return;
+  
+  if (!std::isnan(minv) && !std::isnan(maxv)) {
+    _min = minv;
+    _max = maxv;
+  }
+  if (_min==_max) {
+    return;
+  }
+  
+  // histogram
+  _toolow = 0;
+  _toohigh = 0;
+  _histogram.resize(_nbins);
+  for (int i=0;i<nbins;i++)
+  {
+    _histogram[i] = 0;
+  }
+  double value_to_bin_index = (_nbins-1);
+  value_to_bin_index /= (_max - _min);
+  for (int i=0;i<size;i++)
+  {
+    if (!std::isnan(myx[i])) {
+      int index = (myx[i] - _min)*value_to_bin_index;
+      if (index<0) {
+        _toolow++;
+      } else if (index>=nbins) {
+        _toohigh++;
+      } else {
+        _histogram[index]++;
+      }
+    }
+  }
+}
+void AdacsHistogram::accumulateLO(Rcpp::NumericVector x,double offset, int nbins, double minv, double maxv) {
+  _nbins = nbins;
+  const double_t* iiix=REAL(x);
+  int size = x.size();
+  std::vector<double_t> myx (iiix, iiix+size);
+  _min=std::numeric_limits<double>::max();
+  _max=-_min;
+  _non_null_sample_count=0;
+  _null_sample_count=0;
+  for (int i=0;i<size;i++)
+  {
+    if (!std::isnan(myx[i]) && myx[i]<offset) {
+      _non_null_sample_count++;
+      _min = MIN(_min,myx[i]);
+      _max = MAX(_max,myx[i]);
+    }
+  }
+  _null_sample_count = size-_non_null_sample_count;
+  
+  if (_non_null_sample_count<1)
+    return;
+  
+  if (!std::isnan(minv) && !std::isnan(maxv)) {
+    _min = minv;
+    _max = maxv;
+  }
+  if (_min==_max) {
+    return;
+  }
+  
+  // histogram
+  _toolow = 0;
+  _toohigh = 0;
+  _histogram.resize(_nbins);
+  for (int i=0;i<nbins;i++)
+  {
+    _histogram[i] = 0;
+  }
+  double value_to_bin_index = (_nbins-1);
+  value_to_bin_index /= (_max - _min);
+  for (int i=0;i<size;i++)
+  {
+    if (!std::isnan(myx[i]) && myx[i]<offset) {
+      int index = (myx[i] - _min)*value_to_bin_index;
+      if (index<0) {
+        _toolow++;
+      } else if (index>=nbins) {
+        _toohigh++;
+      } else {
+        _histogram[index]++;
+      }
+    }
+  }
+}
+void AdacsHistogram::accumulateHI(Rcpp::NumericVector x,double offset, int nbins, double minv, double maxv) {
+  _nbins = nbins;
+  const double_t* iiix=REAL(x);
+  int size = x.size();
+  std::vector<double_t> myx (iiix, iiix+size);
+  _min=std::numeric_limits<double>::max();
+  _max=-_min;
+  _non_null_sample_count=0;
+  _null_sample_count=0;
+  for (int i=0;i<size;i++)
+  {
+    if (!std::isnan(myx[i]) && myx[i]>offset) {
+      _non_null_sample_count++;
+      _min = MIN(_min,myx[i]);
+      _max = MAX(_max,myx[i]);
+    }
+  }
+  _null_sample_count = size-_non_null_sample_count;
+  
+  if (_non_null_sample_count<1)
+    return;
+  
+  if (!std::isnan(minv) && !std::isnan(maxv)) {
+    _min = minv;
+    _max = maxv;
+  }
+  if (_min==_max) {
+    return;
+  }
+  
+  // histogram
+  _toolow = 0;
+  _toohigh = 0;
+  _histogram.resize(_nbins);
+  for (int i=0;i<nbins;i++)
+  {
+    _histogram[i] = 0;
+  }
+  double value_to_bin_index = (_nbins-1);
+  value_to_bin_index /= (_max - _min);
+  for (int i=0;i<size;i++)
+  {
+    if (!std::isnan(myx[i]) && myx[i]>offset) {
+      int index = (myx[i] - _min)*value_to_bin_index;
+      if (index<0) {
+        _toolow++;
+      } else if (index>=nbins) {
+        _toohigh++;
+      } else {
+        _histogram[index]++;
+      }
+    }
+  }
+}
+double AdacsHistogram::quantile(double quantile, double offset) const {
+  int count=0;
+  double quantileValue = _min-offset;
+  double binwidth = (_max - _min)/_nbins;
+  int target_count = _non_null_sample_count*quantile;
+  for (int i=0;i<_nbins;i++) {
+    if (count>=target_count)
+      return quantileValue;
+    quantileValue += binwidth;
+    count += _histogram[i];
+  }
+  return quantileValue;
+}
     void Adacs::subset_cpp_inplace(
         Rcpp::NumericMatrix image, const int scol, const int ecol, const int srow, const int erow, const int coffset, const int roffset, Rcpp::NumericMatrix oimage)
     {
@@ -333,9 +557,6 @@ if (occupied == buffer) {                             \
         }
       }
     }
-#define MAX(a,b) (a)>(b)?(a):(b)
-#define MIN(a,b) (a)<(b)?(a):(b)
-#define ABS(a) (a)<0?(-a):(a)
     Rcpp::NumericVector Adacs::Cadacs_FindSkyCellValues(Rcpp::NumericMatrix image,
                                                         BitMatrix & bobjects, BitMatrix & bmask, 
                                                         const double loc1, const double loc2, const double box1, const double box2, const double boxadd1, const double boxadd2, 
@@ -544,7 +765,6 @@ if (occupied == buffer) {                             \
       int newlen = length;
       if(clipiters>0 & length>0){
         double sigcut=R::pnorm(sigmasel, 0.0, 1.0, 1, 0);
-        //double sigcut=0.8;
         
         for(int iteration=0; iteration<clipiters; iteration++){
           if(newlen<=1)
@@ -900,160 +1120,22 @@ if (occupied == buffer) {                             \
     }
     
     //==================================================================================
-    double_t Adacs::Cadacs_quantile(Rcpp::NumericVector x, double quantile) {
-      const double_t* iiix=REAL(x);
-      int size = x.size();
-      std::vector<double_t> myx (iiix, iiix+size);
-      double min=std::numeric_limits<double>::max();
-      double max=-min;
-      int non_null_sample_count=0;
-      for (int i=0;i<size;i++)
-      {
-        if (!std::isnan(myx[i])) {
-          non_null_sample_count++;
-          min = MIN(min,myx[i]);
-          max = MAX(max,myx[i]);
-        }
-      }
-      
-      if (non_null_sample_count<1)
-        return R_NaN;
-      if (min==max) {
-        return min;
-      }
-      
-      // histogram
-      int levels = 16384;
-      std::vector<int> histogram;
-      histogram.resize(levels);
-      for (int i=0;i<levels;i++)
-      {
-        histogram[i] = 0;
-      }
-      double value_to_bin_index = (levels-1);
-      value_to_bin_index /= (max - min);
-      for (int i=0;i<size;i++)
-      {
-        if (!std::isnan(myx[i])) {
-          int index = (myx[i] - min)*value_to_bin_index;
-          histogram[index]++;
-        }
-      }
-      int count=0;
-      double quantileValue = min;
-      double binwidth = (max - min)/levels;
-      int target_count = non_null_sample_count*quantile;
-      for (int i=0;i<levels;i++) {
-        if (count>=target_count)
-          return quantileValue;
-        quantileValue += binwidth;
-        count += histogram[i];
-      }
-      return quantileValue;
+    double_t Adacs::Cadacs_quantile(Rcpp::NumericVector x, double quantile, int nbins, double minv, double maxv) {
+      AdacsHistogram histogram;
+      histogram.accumulate(x, nbins, minv, maxv);
+      return histogram.quantile(quantile);
     }
-    double_t Adacs::Cadacs_quantileLO(Rcpp::NumericVector x, double quantile, const double offset) {
+    double_t Adacs::Cadacs_quantileLO(Rcpp::NumericVector x, double quantile, const double offset, int nbins, double minv, double maxv) {
       // The population we want the quantile for is x-offset where x<offset
-      const double_t* iiix=REAL(x);
-      int size = x.size();
-      std::vector<double_t> myx (iiix, iiix+size);
-      double min=std::numeric_limits<double>::max();
-      double max=-min;
-      int non_null_sample_count=0;
-      for (int i=0;i<size;i++)
-      {
-        if (!std::isnan(myx[i]) && myx[i]<offset) {
-          non_null_sample_count++;
-          min = MIN(min,myx[i]);
-          max = MAX(max,myx[i]);
-        }
-      }
-      
-      if (non_null_sample_count<1)
-        return R_NaN;
-      if (min==max) {
-        return min;
-      }
-      
-      // histogram
-      int levels = 16384;
-      std::vector<int> histogram;
-      histogram.resize(levels);
-      for (int i=0;i<levels;i++)
-      {
-        histogram[i] = 0;
-      }
-      double value_to_bin_index = (levels-1);
-      value_to_bin_index /= (max - min);
-      for (int i=0;i<size;i++)
-      {
-        if (!std::isnan(myx[i]) && myx[i]<offset) {
-          int index = (myx[i] - min)*value_to_bin_index;
-          histogram[index]++;
-        }
-      }
-      int count=0;
-      double quantileValue = min-offset;
-      double binwidth = (max - min)/levels;
-      int target_count = non_null_sample_count*quantile;
-      for (int i=0;i<levels;i++) {
-        if (count>=target_count)
-          return quantileValue;
-        quantileValue += binwidth;
-        count += histogram[i];
-      }
-      return quantileValue;
+      AdacsHistogram histogram;
+      histogram.accumulateLO(x, offset, nbins, minv, maxv);
+      return histogram.quantile(quantile, offset);
     }
-    double_t Adacs::Cadacs_quantileHI(Rcpp::NumericVector x, double quantile, const double offset) {
+    double_t Adacs::Cadacs_quantileHI(Rcpp::NumericVector x, double quantile, const double offset, int nbins, double minv, double maxv) {
       // The population we want the quantile for is x-offset where x>offset
-      const double_t* iiix=REAL(x);
-      int size = x.size();
-      std::vector<double_t> myx (iiix, iiix+size);
-      double min=std::numeric_limits<double>::max();
-      double max=-min;
-      int non_null_sample_count=0;
-      for (int i=0;i<size;i++)
-      {
-        if (!std::isnan(myx[i]) && myx[i]>offset) {
-          non_null_sample_count++;
-          min = MIN(min,myx[i]);
-          max = MAX(max,myx[i]);
-        }
-      }
-      
-      if (non_null_sample_count<1)
-        return R_NaN;
-      if (min==max) {
-        return min;
-      }
-      
-      // histogram
-      int levels = 16384;
-      std::vector<int> histogram;
-      histogram.resize(levels);
-      for (int i=0;i<levels;i++)
-      {
-        histogram[i] = 0;
-      }
-      double value_to_bin_index = (levels-1);
-      value_to_bin_index /= (max - min);
-      for (int i=0;i<size;i++)
-      {
-        if (!std::isnan(myx[i]) && myx[i]>offset) {
-          int index = (myx[i] - min)*value_to_bin_index;
-          histogram[index]++;
-        }
-      }
-      int count=0;
-      double quantileValue = min-offset;
-      double binwidth = (max - min)/levels;
-      int target_count = non_null_sample_count*quantile;
-      for (int i=0;i<levels;i++) {
-        if (count>=target_count)
-          return quantileValue;
-        quantileValue += binwidth;
-        count += histogram[i];
-      }
-      return quantileValue;
+      AdacsHistogram histogram;
+      histogram.accumulateHI(x, offset, nbins, minv, maxv);
+      return histogram.quantile(quantile, offset);
     }
     double_t Adacs::Cadacs_mean(Rcpp::NumericVector x) {
       const double_t* myx=REAL(x);
@@ -1580,7 +1662,7 @@ if (occupied == buffer) {                             \
         }
     }
     
-// dilute
+// dilate
 //===========
 /* use custom templates rather than std::numeric_limits to avoid dependency on C++11 due to lowest() */
 #define MIN_VALUE true

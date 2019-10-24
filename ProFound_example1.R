@@ -8,7 +8,7 @@ image=readFITS(system.file("extdata", 'VIKING/mystery_VIKING_Z.fits', package="P
 #image[1,1] = NaN
 bmask=new(BitMatrix, dim(image)[1],dim(image)[2])
 bmask$settrue(1,1)
-profound=adacs_ProFound(image, skycut=1.5, magzero=30, verbose=TRUE, plot=TRUE, type="bicubic", skytype="rmedian", skyRMStype = "rquanlo", bmask=bmask)
+profound=adacs_ProFound(image, skycut=1.5, magzero=30, verbose=TRUE, plot=TRUE, type="bicubic", skytype="median", skyRMStype = "rquanlo", bmask=bmask)
 #print(paste("Nseg=", profound$Nseg))
 #profound=adacs_ProFound(image, verbose=TRUE, box=c(20, 20), bmask=bmask)
 #profound=profoundProFound(image, verbose=TRUE, box=c(39, 39))

@@ -13,6 +13,22 @@ Rcpp.package.skeleton("bitmatrix",
 ./remove_installed_package.sh
 RScript tmp_create_package.R
 
+rm -f bitmatrix/src/Num.cpp
+rm -f bitmatrix/src/stdVector.cpp
+cat > bitmatrix/R/zzz.R << !
+## Up until R 2.15.0, the require("methods") is needed but (now)
+## triggers an warning from R CMD check
+#.onLoad <- function(libname, pkgname){
+#    #require("methods")  ## needed with R <= 2.15.0
+#    loadRcppModules()
+#}
+
+
+## For R 2.15.1 and later this also works. Note that calling loadModule() triggers
+## a load action, so this does not have to be placed in .onLoad() or evalqOnLoad().
+loadModule("yada", TRUE)
+!
+
 cat > tmp_patch_package.R << !
 library(Rcpp)
 compileAttributes(pkgdir = 'bitmatrix', verbose = TRUE)

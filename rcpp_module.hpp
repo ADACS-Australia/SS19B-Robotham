@@ -23,6 +23,7 @@
 #include <Rcpp.h>
 using namespace Rcpp;
 RCPP_EXPOSED_CLASS(BitMatrix)
+RCPP_EXPOSED_CLASS(AdacsHistogram)
 #include "bitmatrix.h"
 #endif
 

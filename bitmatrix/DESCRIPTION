@@ -2,7 +2,7 @@ Package: bitmatrix
 Type: Package
 Title: What the Package Does in One 'Title Case' Line
 Version: 1.0
-Date: 2019-10-24
+Date: 2019-10-25
 Author: Ray Seikel
 Maintainer: Ray Seikel <rseikel@bigpond.com>
 Description: One paragraph description of what the package does as one

@@ -23,14 +23,10 @@ RcppExport SEXP _bitmatrix_RcppExport_registerCCallable() {
     return R_NilValue;
 }
 
-RcppExport SEXP _rcpp_module_boot_NumEx();
 RcppExport SEXP _rcpp_module_boot_yada();
-RcppExport SEXP _rcpp_module_boot_stdVector();
 
 static const R_CallMethodDef CallEntries[] = {
-    {"_rcpp_module_boot_NumEx", (DL_FUNC) &_rcpp_module_boot_NumEx, 0},
     {"_rcpp_module_boot_yada", (DL_FUNC) &_rcpp_module_boot_yada, 0},
-    {"_rcpp_module_boot_stdVector", (DL_FUNC) &_rcpp_module_boot_stdVector, 0},
     {"_bitmatrix_RcppExport_registerCCallable", (DL_FUNC) &_bitmatrix_RcppExport_registerCCallable, 0},
     {NULL, NULL, 0}
 };

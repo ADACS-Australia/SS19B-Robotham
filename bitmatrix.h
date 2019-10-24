@@ -47,6 +47,7 @@ public:
     void clearValue(IntegerMatrix x, int value);
     void copyTo(IntegerMatrix x);
     void dilate(BitMatrix & kernel);
+    void dilatesmarter(BitMatrix & kernel);
     void dilatefast(SEXP kernel);
 
     std::vector<int> trues(int32_t offset=0) const; // 0 relative
@@ -62,6 +63,24 @@ private:
   uint32_t _npts;
   uint32_t _n32bitwords;
   std::vector<uint32_t> _data;
+};
+
+class AdacsHistogram {
+public:
+  AdacsHistogram();
+  void accumulate(Rcpp::NumericVector x,int nbins=16384, double minv=R_NaN, double maxv=R_NaN);
+  void accumulateLO(Rcpp::NumericVector x,double offset=0, int nbins=16384, double minv=R_NaN, double maxv=R_NaN);
+  void accumulateHI(Rcpp::NumericVector x,double offset=0, int nbins=16384, double minv=R_NaN, double maxv=R_NaN);
+  double quantile(double quantile, double offset=0) const;
+private:
+  int _nbins;
+  double _min;
+  double _max;
+  int _non_null_sample_count;
+  int _null_sample_count;
+  std::vector<int> _histogram;
+  int _toolow;
+  int _toohigh;
 };
 /**
  *  Represents an Akima spline
@@ -134,7 +153,6 @@ public:
 #define MAX(a,b) (a)>(b)?(a):(b)
 #define MIN(a,b) (a)<(b)?(a):(b)
 #define ABS(a) (a)<0?(-a):(a)
-#define flt64Null -999
   Rcpp::NumericVector Cadacs_FindSkyCellValues(Rcpp::NumericMatrix image,
                                                BitMatrix & bobjects, BitMatrix & bmask,
                                                const double loc1, const double loc2,
@@ -155,9 +173,9 @@ public:
   void interpolateLinearGrid(Rcpp::NumericVector xseq,Rcpp::NumericVector yseq,Rcpp::NumericMatrix tempmat_sky,Rcpp::NumericMatrix output);
   
   //==================================================================================
-  double_t Cadacs_quantile(Rcpp::NumericVector x, double quantile);
-  double_t Cadacs_quantileLO(Rcpp::NumericVector x, double quantile, const double offset);
-  double_t Cadacs_quantileHI(Rcpp::NumericVector x, double quantile, const double offset);
+  double_t Cadacs_quantile(Rcpp::NumericVector x, double quantile, int bins=16384, double minv=R_NaN, double maxv=R_NaN);
+  double_t Cadacs_quantileLO(Rcpp::NumericVector x, double quantile, const double offset, int bins=16384, double minv=R_NaN, double maxv=R_NaN);
+  double_t Cadacs_quantileHI(Rcpp::NumericVector x, double quantile, const double offset, int bins=16384, double minv=R_NaN, double maxv=R_NaN);
   double_t Cadacs_mean(Rcpp::NumericVector x);
   double_t Cadacs_population_variance(Rcpp::NumericVector x, const double offset);
   double_t Cadacs_sample_variance(Rcpp::NumericVector x, const double offset);
@@ -208,7 +226,14 @@ RCPP_MODULE(yada){
     .const_method("isnull", &BitMatrix::isnull, "is this object null or not null")
     .method("setnull", &BitMatrix::setnull, "set this object as null or not null")
     .method("dilate", &BitMatrix::dilate, "apply the morphological dilate operation")
+    .method("dilatesmarter", &BitMatrix::dilatesmarter, "apply the morphological dilate operation")
     .method("dilatefast", &BitMatrix::dilatefast, "apply the morphological dilate operation. ported from EBImage")
+    ;
+    
+    class_<AdacsHistogram>("AdacsHistogram")
+    .constructor()
+    .method("accumulate", &AdacsHistogram::accumulate, "Acquire the histogram")
+    .const_method("quantile", &AdacsHistogram::quantile, "Return the value of the given quantile")
     ;
 
     class_<Adacs>("Adacs")

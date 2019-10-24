@@ -434,8 +434,8 @@ adacs_ProFound=function(image=NULL, segim=NULL, bobjects=NULL, bmask=NULL, skycu
     output=list(segim=segim, segim_orig=segim_orig, bobjects=bobjects, bobjects_redo=bobjects_redo, sky=sky, skyRMS=skyRMS, image=image, bmask=bmask, segstats=segstats, Nseg=dim(segstats)[1], near=near, group=group, groupstats=groupstats, haralick=haralick, header=header, SBlim=SBlim, magzero=magzero, dim=dim(segim), pixscale=pixscale, skyarea=skyarea, gain=gain, call=call, date=date(), time=proc.time()[3]-timestart, ProFound.version=packageVersion('ProFound'), R.version=R.version)
     }else{
     if(is.null(header)){header=NULL}
-    if(keepim==FALSE){image=NULL; mask=NULL; bmask=NULL}
-    if(is.null(mask)){mask=NULL; bmask=NULL;}
+    if(keepim==FALSE){image=NULL; bmask=NULL}
+    if(is.null(bmask)){bmask=NULL;}
     if(!is.null(badpix)){image[badpix]=NA}
     if(verbose){message('No objects in segmentation map - skipping dilations and CoG')}
     if(verbose){message(paste('ProFound is finished! -',round(proc.time()[3]-timestart,3),'sec'))}

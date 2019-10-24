@@ -55,21 +55,12 @@ adacs_MakeSegim=function(image=NULL, bmask=NULL, bobjects=NULL, skycut=1, pixcut
   image[bmask$trues()]=0
   if(verbose){message(paste(" - Watershed de-blending -", round(proc.time()[3]-timestart,3), "sec"))}
   if(any(image>0)){
-    if(watershed=='EBImage'){
-      if(!requireNamespace("EBImage", quietly = TRUE)){
-        stop('The EBImage package is needed for this function to work. Please install it from Bioconductor.', call. = FALSE)
-      }
-      image[image<skycut]=0
-      segim=EBImage::imageData(EBImage::watershed(image,tolerance=tolerance,ext=ext))
-      segtab=tabulate(segim)
-      segim[segim %in% which(segtab<pixcut)]=0L
-      mode(segim)='integer'
-    }else if(watershed=='ProFound'){
+    if(watershed=='ProFound'){
       segim=water_cpp(image=image, nx=dim(image)[1], ny=dim(image)[2], abstol=tolerance, reltol=reltol, cliptol=cliptol, ext=ext, skycut=skycut, pixcut=pixcut, verbose=verbose)
     }else if(watershed=='ProFound-old'){
       segim=water_cpp_old(image=image, nx=dim(image)[1], ny=dim(image)[2], abstol=tolerance, reltol=reltol, cliptol=cliptol, ext=ext, skycut=skycut, pixcut=pixcut, verbose=verbose)
     }else{
-      stop('watershed option must either be EBImage/ProFound/ProFound-old!')
+      stop('watershed option must either be ProFound/ProFound-old!')
     }
   }else{
     segim=image
@@ -126,7 +117,7 @@ adacs_MakeSegimDilate=function(image=NULL, segim=NULL, bmask=NULL, size=9, shape
     if(verbose){message(paste(' - Extracted pixel scale from header provided:',round(pixscale,3),'asec/pixel.'))}
   }
   
-  kern = EBImage::makeBrush(size, shape=shape)
+  kern = .makeBrush(size, shape=shape)
   bkern = new(BitMatrix, kern)
   
   if(verbose){message(paste(" - Dilating segments -", round(proc.time()[3]-timestart,3), "sec"))}
@@ -143,34 +134,52 @@ adacs_MakeSegimDilate=function(image=NULL, segim=NULL, bmask=NULL, size=9, shape
     
     return(invisible(list(segim=segim, segstats=segstats, header=header, call=call)))
   }
-  
+  smarter = FALSE
+  if (smarter) {
   if(expand[1]=='all'){
-    segim_new=segim
-    maxorig=max(segim_new, na.rm=doRMNA)+1L
-    replace=which(segim_new!=0)
-    segim_new[replace]=maxorig-segim_new[replace]
-    segim_new=EBImage::imageData(EBImage::dilate(segim_new, kern)) #Run Dilate
-    replace=which(segim_new!=0)
-    segim_new[replace]=maxorig-segim_new[replace]
-    replace=which(segim!=0) #put back non-dilated segments
-    segim_new[replace]=segim[replace] #put back non-dilated segments
+    segim_new = .dilate_cpp(segim, kern)
+
   }else{
     segim_new=segim
-    #segim_new[!(segim_new %in% expand)]=0L #remove things that will not be dilated
     if('fastmatch' %in% .packages()){ #remove things that will not be dilated
       segim_new[fastmatch::fmatch(segim_new, expand, nomatch = 0L) == 0L] = 0L
     }else{
       segim_new[!(segim_new %in% expand)] = 0L
     }
-    maxorig=max(segim_new, na.rm=doRMNA)+1L
-    replace=which(segim_new!=0)
-    segim_new[replace]=maxorig-segim_new[replace]
-    segim_new=EBImage::imageData(EBImage::dilate(segim_new, kern)) #Run Dilate
-    replace=which(segim_new!=0)
-    segim_new[replace]=maxorig-segim_new[replace]
+    segim_new = .dilate_cpp(segim_new, kern)
     replace=which(segim!=0) #put back non-dilated segments
     segim_new[replace]=segim[replace] #put back non-dilated segments
     rm(replace)
+  }
+  } else {
+    if(expand[1]=='all'){
+      segim_new=segim
+      maxorig=max(segim_new, na.rm=doRMNA)+1L
+      replace=which(segim_new!=0)
+      segim_new[replace]=maxorig-segim_new[replace]
+      segim_new=EBImage::imageData(EBImage::dilate(segim_new, kern)) #Run Dilate
+      replace=which(segim_new!=0)
+      segim_new[replace]=maxorig-segim_new[replace]
+      replace=which(segim!=0) #put back non-dilated segments
+      segim_new[replace]=segim[replace] #put back non-dilated segments
+    }else{
+      segim_new=segim
+      #segim_new[!(segim_new %in% expand)]=0L #remove things that will not be dilated
+      if('fastmatch' %in% .packages()){ #remove things that will not be dilated
+        segim_new[fastmatch::fmatch(segim_new, expand, nomatch = 0L) == 0L] = 0L
+      }else{
+        segim_new[!(segim_new %in% expand)] = 0L
+      }
+      maxorig=max(segim_new, na.rm=doRMNA)+1L
+      replace=which(segim_new!=0)
+      segim_new[replace]=maxorig-segim_new[replace]
+      segim_new=EBImage::imageData(EBImage::dilate(segim_new, kern)) #Run Dilate
+      replace=which(segim_new!=0)
+      segim_new[replace]=maxorig-segim_new[replace]
+      replace=which(segim!=0) #put back non-dilated segments
+      segim_new[replace]=segim[replace] #put back non-dilated segments
+      rm(replace)
+    }
   }
   mode(segim_new)='integer'
   
@@ -210,7 +219,7 @@ adacs_MakeSegimDilateBitMatrix=function(bobjects=bobjects, bmask=NULL, size=9, s
     stop('The EBImage package is needed for this function to work. Please install it from Bioconductor.', call. = FALSE)
   }
   
-  kern = EBImage::makeBrush(size, shape=shape)
+  kern = .makeBrush(size, shape=shape)
   bkern = new(BitMatrix, kern)
   
   if(verbose){message(paste(" - Dilating segments -", round(proc.time()[3]-timestart,3), "sec"))}
