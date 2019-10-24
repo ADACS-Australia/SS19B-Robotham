@@ -36,46 +36,46 @@ initialiseGlobals = function(doclip)
 enumForKeyword = function(keyword)
 {
   result = NULL
-  if (stri_detect_fixed(keyword,"median",case_insensitive=TRUE)) {
+  if (stri_detect_fixed(keyword,"adacs_median",case_insensitive=TRUE)) {
     result = MEDIAN
   }
-  if (stri_detect_fixed(keyword,"mean",case_insensitive=TRUE)) {
+  if (stri_detect_fixed(keyword,"adacs_mean",case_insensitive=TRUE)) {
     result = MEAN
   }
-  if (stri_detect_fixed(keyword,"mode",case_insensitive=TRUE)) {
+  if (stri_detect_fixed(keyword,"adacs_mode",case_insensitive=TRUE)) {
     result = MODE
   }
-  if (stri_detect_fixed(keyword,"rmedian",case_insensitive=TRUE)) {
+  if (stri_detect_fixed(keyword,"median",case_insensitive=TRUE)) {
     result = RMEDIAN
   }
-  if (stri_detect_fixed(keyword,"rmean",case_insensitive=TRUE)) {
+  if (stri_detect_fixed(keyword,"mean",case_insensitive=TRUE)) {
     result = RMEAN
   }
-  if (stri_detect_fixed(keyword,"rmode",case_insensitive=TRUE)) {
+  if (stri_detect_fixed(keyword,"mode",case_insensitive=TRUE)) {
     result = RMODE
   }
-  if (stri_detect_fixed(keyword,"quanboth",case_insensitive=TRUE)) {
+  if (stri_detect_fixed(keyword,"adacs_quanboth",case_insensitive=TRUE)) {
     result = BOTH
   }
-  if (stri_detect_fixed(keyword,"quanlo",case_insensitive=TRUE)) {
+  if (stri_detect_fixed(keyword,"adacs_quanlo",case_insensitive=TRUE)) {
     result = LO
   }
-  if (stri_detect_fixed(keyword,"quanhi",case_insensitive=TRUE)) {
+  if (stri_detect_fixed(keyword,"adacs_quanhi",case_insensitive=TRUE)) {
     result = HI
   }
-  if (stri_detect_fixed(keyword,"sd",case_insensitive=TRUE)) {
+  if (stri_detect_fixed(keyword,"adacs_sd",case_insensitive=TRUE)) {
     result = SD
   }
-  if (stri_detect_fixed(keyword,"rquanboth",case_insensitive=TRUE)) {
+  if (stri_detect_fixed(keyword,"quanboth",case_insensitive=TRUE)) {
     result = RBOTH
   }
-  if (stri_detect_fixed(keyword,"rquanlo",case_insensitive=TRUE)) {
+  if (stri_detect_fixed(keyword,"quanlo",case_insensitive=TRUE)) {
     result = RLO
   }
-  if (stri_detect_fixed(keyword,"rquanhi",case_insensitive=TRUE)) {
+  if (stri_detect_fixed(keyword,"quanhi",case_insensitive=TRUE)) {
     result = RHI
   }
-  if (stri_detect_fixed(keyword,"rsd",case_insensitive=TRUE)) {
+  if (stri_detect_fixed(keyword,"sd",case_insensitive=TRUE)) {
     result = RSD
   }
   if (stri_detect_fixed(keyword,"auto",case_insensitive=TRUE)) {
