@@ -12,4 +12,4 @@ profound=adacs_ProFound(image, skycut=1.5, magzero=30, verbose=TRUE, plot=TRUE, 
 #print(paste("Nseg=", profound$Nseg))
 #profound=adacs_ProFound(image, verbose=TRUE, box=c(20, 20), bmask=bmask)
 #profound=profoundProFound(image, verbose=TRUE, box=c(39, 39))
-#profound=profoundProFound(image, skycut=1.5, magzero=30, verbose=TRUE, plot=TRUE)
+#profound=profoundProFound(image, skycut=1.5, magzero=30, verbose=TRUE, plot=FALSE, type="bicubic", skytype="median", skyRMStype = "quanlo")

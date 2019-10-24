@@ -3,7 +3,7 @@ library(stringi)
 library(bitmatrix)
 
 args = commandArgs(TRUE)
-box_size = as.integer(args[1])+20
+box_size = as.integer(args[1])
 image_resize_steps = as.integer(args[2])
 what = args[3]
 
