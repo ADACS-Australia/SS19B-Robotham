@@ -1,5 +1,4 @@
 library(ProFound)
-library(stringi)
 library(RUnit)
 
 initialiseGlobals(TRUE)
