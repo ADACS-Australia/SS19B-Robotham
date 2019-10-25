@@ -36,58 +36,58 @@ initialiseGlobals = function(doclip)
 enumForKeyword = function(keyword)
 {
   result = NULL
-  if (stri_detect_fixed(keyword,"median",case_insensitive=TRUE)) {
+  if (tolower(keyword) == 'adacs_median') {
     result = MEDIAN
   }
-  if (stri_detect_fixed(keyword,"mean",case_insensitive=TRUE)) {
+  if (tolower(keyword) == 'adacs_mean') {
     result = MEAN
   }
-  if (stri_detect_fixed(keyword,"mode",case_insensitive=TRUE)) {
+  if (tolower(keyword) == 'adacs_mode') {
     result = MODE
   }
-  if (stri_detect_fixed(keyword,"rmedian",case_insensitive=TRUE)) {
+  if (tolower(keyword) == 'median') {
     result = RMEDIAN
   }
-  if (stri_detect_fixed(keyword,"rmean",case_insensitive=TRUE)) {
+  if (tolower(keyword) == 'mean') {
     result = RMEAN
   }
-  if (stri_detect_fixed(keyword,"rmode",case_insensitive=TRUE)) {
+  if (tolower(keyword) == 'mode') {
     result = RMODE
   }
-  if (stri_detect_fixed(keyword,"quanboth",case_insensitive=TRUE)) {
+  if (tolower(keyword) == 'adacs_quanboth') {
     result = BOTH
   }
-  if (stri_detect_fixed(keyword,"quanlo",case_insensitive=TRUE)) {
+  if (tolower(keyword) == 'adacs_quanlo') {
     result = LO
   }
-  if (stri_detect_fixed(keyword,"quanhi",case_insensitive=TRUE)) {
+  if (tolower(keyword) == 'adacs_quanhi') {
     result = HI
   }
-  if (stri_detect_fixed(keyword,"sd",case_insensitive=TRUE)) {
+  if (tolower(keyword) == 'adacs_sd') {
     result = SD
   }
-  if (stri_detect_fixed(keyword,"rquanboth",case_insensitive=TRUE)) {
+  if (tolower(keyword) == 'quanboth') {
     result = RBOTH
   }
-  if (stri_detect_fixed(keyword,"rquanlo",case_insensitive=TRUE)) {
+  if (tolower(keyword) == 'quanlo') {
     result = RLO
   }
-  if (stri_detect_fixed(keyword,"rquanhi",case_insensitive=TRUE)) {
+  if (tolower(keyword) == 'quanhi') {
     result = RHI
   }
-  if (stri_detect_fixed(keyword,"rsd",case_insensitive=TRUE)) {
+  if (tolower(keyword) == 'sd') {
     result = RSD
   }
-  if (stri_detect_fixed(keyword,"auto",case_insensitive=TRUE)) {
+  if (tolower(keyword) == 'auto') {
     result = AUTO
   }
-  if (stri_detect_fixed(keyword,"set",case_insensitive=TRUE)) {
+  if (tolower(keyword) == 'set') {
     result = SET
   }
-  if (stri_detect_fixed(keyword,"bilinear",case_insensitive=TRUE)) {
+  if (tolower(keyword) == 'bilinear') {
     result = CLASSIC_BILINEAR
   }
-  if (stri_detect_fixed(keyword,"bicubic",case_insensitive=TRUE)) {
+  if (tolower(keyword) == 'bicubic') {
     result = AKIMA_BICUBIC
   }
   invisible(result)
