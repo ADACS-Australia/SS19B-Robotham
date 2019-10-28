@@ -1,5 +1,6 @@
 library(ProFound)
 library(stringi)
+library(bitmatrix)
 
 args = commandArgs(TRUE)
 box_size = as.integer(args[1])
@@ -16,23 +17,24 @@ for (i in seq_along(seq_len(image_resize_steps))) {
 		image = rbind(image, image)
 	}
 }
+result=gc()
 
 # Go, go, go!
 if (what == 'profound-original') {
 	mask = matrix(0L,dim(image)[1],dim(image)[2])
-	mask[1,1] = 1L
+        mask[1,1] = 1L
 	result = profoundProFound(image, box=c(box_size, box_size), mask=mask)
 } else if (what == 'profound-adacs') {
-	mask = matrix(0L,dim(image)[1],dim(image)[2])
-	mask[1,1] = 1L
-	result = profoundProFoundADACSInPlace(image, box=c(box_size, box_size), mask=mask)
+	bmask = new(BitMatrix,dim(image)[1],dim(image)[2])
+        bmask$settrue(1,1)
+	result = adacs_ProFound(image, box=c(box_size, box_size), bmask=bmask)
 } else if (what == 'skygrid-original') {
 	mask = matrix(0L,dim(image)[1],dim(image)[2])
-	mask[1,1] = 1L
+        mask[1,1] = 1L
 	result = profoundMakeSkyGrid(image, box=c(box_size, box_size), mask=mask)
 } else if (what == 'skygrid-adacs') {
-	mask = matrix(0L,dim(image)[1],dim(image)[2])
-	mask[1,1] = 1L
+	bmask = new(BitMatrix,dim(image)[1],dim(image)[2])
+        bmask$settrue(1,1)
 	# Ensure dimensions of box are odd numbers
 	box = c(box_size,box_size)
 	if (box[1]%%2 == 0) {
@@ -46,7 +48,28 @@ if (what == 'profound-original') {
 			scratchSKYRMS=matrix(0.0,dim(image)[1],dim(image)[2])
 	)
 	initialiseGlobals(TRUE)
-	result = adacs_MakeSkyGrid(image, box=box, mask=mask, scratch=scratch)
+	result = adacs_MakeSkyGrid(image, box=box, scratch=scratch, bmask=bmask)
+} else if (what == 'baseline1') {
+	mask = matrix(0L,dim(image)[1],dim(image)[2])
+        mask[dim(image)[1],dim(image)[2]] = 1L
+} else if (what == 'baseline2') {
+	bmask = new(BitMatrix,dim(image)[1],dim(image)[2])
+        bmask$settrue(dim(image)[1],dim(image)[2])
+} else if (what == 'baseline3') {
+	mask = matrix(0L,dim(image)[1],dim(image)[2])
+        for (i in 1:dim(image)[1]) {
+            mask[i,i] = 1L
+        }
+        result = which(mask>0)
+} else if (what == 'baseline4') {
+	bmask = new(BitMatrix,dim(image)[1],dim(image)[2])
+        bmask$settrue(dim(image)[1],dim(image)[2])
+        for (i in 1:dim(image)[1]) {
+            bmask$settrue(i,i)
+        }
+        result = bmask$trues()
+} else {
+        print(paste("Option not recognised: ",what))
 }
 
 # Report and good bye

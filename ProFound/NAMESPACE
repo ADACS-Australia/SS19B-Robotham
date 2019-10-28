@@ -11,9 +11,11 @@ import("graphics")
 import("grDevices")
 import("foreach")
 import("doParallel")
+import("bitmatrix")
 
 importFrom("Rcpp", "evalCpp")
 importFrom("utils", "relist", "packageVersion")
 importFrom("RColorBrewer", "brewer.pal")
+
 
 S3method("plot","profound")
