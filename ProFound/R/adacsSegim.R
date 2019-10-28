@@ -38,7 +38,7 @@ adacs_MakeSegim=function(image=NULL, bmask=NULL, bobjects=NULL, skycut=1, pixcut
       image=as.matrix(imager::isoblur(imager::as.cimg(image),sigma))
     }else{
       if(!requireNamespace("EBImage", quietly = TRUE)){
-        stop('The imager or EBImage package is needed for smoothing to work. Please install from CRAN.', call. = FALSE)
+        stop('The imager or EBImage package is needed for smoothing to work. Please install from CRAN/Bioconductor.', call. = FALSE)
       }
       message(" - WARNING: imager package not installed, using EBImage gblur smoothing!")
       image=as.matrix(EBImage::gblur(image,sigma))
@@ -59,8 +59,17 @@ adacs_MakeSegim=function(image=NULL, bmask=NULL, bobjects=NULL, skycut=1, pixcut
       segim=water_cpp(image=image, nx=dim(image)[1], ny=dim(image)[2], abstol=tolerance, reltol=reltol, cliptol=cliptol, ext=ext, skycut=skycut, pixcut=pixcut, verbose=verbose)
     }else if(watershed=='ProFound-old'){
       segim=water_cpp_old(image=image, nx=dim(image)[1], ny=dim(image)[2], abstol=tolerance, reltol=reltol, cliptol=cliptol, ext=ext, skycut=skycut, pixcut=pixcut, verbose=verbose)
+    }else if(watershed=='EBImage'){
+      if(!requireNamespace("EBImage", quietly = TRUE)){
+        stop('The EBImage package is needed for this function to work. Please install it from Bioconductor.', call. = FALSE)
+      }
+      image[image<skycut]=0
+      segim=EBImage::imageData(EBImage::watershed(image,tolerance=tolerance,ext=ext))
+      segtab=tabulate(segim)
+      segim[segim %in% which(segtab<pixcut)]=0L
+      mode(segim)='integer'
     }else{
-      stop('watershed option must either be ProFound/ProFound-old!')
+      stop('watershed option must either be ProFound/ProFound-old/EBImage!')
     }
   }else{
     segim=image
@@ -98,12 +107,7 @@ adacs_MakeSegimDilate=function(image=NULL, segim=NULL, bmask=NULL, size=9, shape
   
   call=match.call()
   
-  if(!requireNamespace("EBImage", quietly = TRUE)){
-    stop('The EBImage package is needed for this function to work. Please install it from Bioconductor.', call. = FALSE)
-  }
-  
   #Treat image NAs as masked regions:
-  
   
   if (!is.null(image)) {
     if (is.null(bmask)) {
@@ -118,7 +122,6 @@ adacs_MakeSegimDilate=function(image=NULL, segim=NULL, bmask=NULL, size=9, shape
   }
   
   kern = .makeBrush(size, shape=shape)
-  bkern = new(BitMatrix, kern)
   
   if(verbose){message(paste(" - Dilating segments -", round(proc.time()[3]-timestart,3), "sec"))}
   
@@ -134,8 +137,6 @@ adacs_MakeSegimDilate=function(image=NULL, segim=NULL, bmask=NULL, size=9, shape
     
     return(invisible(list(segim=segim, segstats=segstats, header=header, call=call)))
   }
-  smarter = FALSE
-  if (smarter) {
   if(expand[1]=='all'){
     segim_new = .dilate_cpp(segim, kern)
 
@@ -150,36 +151,6 @@ adacs_MakeSegimDilate=function(image=NULL, segim=NULL, bmask=NULL, size=9, shape
     replace=which(segim!=0) #put back non-dilated segments
     segim_new[replace]=segim[replace] #put back non-dilated segments
     rm(replace)
-  }
-  } else {
-    if(expand[1]=='all'){
-      segim_new=segim
-      maxorig=max(segim_new, na.rm=doRMNA)+1L
-      replace=which(segim_new!=0)
-      segim_new[replace]=maxorig-segim_new[replace]
-      segim_new=EBImage::imageData(EBImage::dilate(segim_new, kern)) #Run Dilate
-      replace=which(segim_new!=0)
-      segim_new[replace]=maxorig-segim_new[replace]
-      replace=which(segim!=0) #put back non-dilated segments
-      segim_new[replace]=segim[replace] #put back non-dilated segments
-    }else{
-      segim_new=segim
-      #segim_new[!(segim_new %in% expand)]=0L #remove things that will not be dilated
-      if('fastmatch' %in% .packages()){ #remove things that will not be dilated
-        segim_new[fastmatch::fmatch(segim_new, expand, nomatch = 0L) == 0L] = 0L
-      }else{
-        segim_new[!(segim_new %in% expand)] = 0L
-      }
-      maxorig=max(segim_new, na.rm=doRMNA)+1L
-      replace=which(segim_new!=0)
-      segim_new[replace]=maxorig-segim_new[replace]
-      segim_new=EBImage::imageData(EBImage::dilate(segim_new, kern)) #Run Dilate
-      replace=which(segim_new!=0)
-      segim_new[replace]=maxorig-segim_new[replace]
-      replace=which(segim!=0) #put back non-dilated segments
-      segim_new[replace]=segim[replace] #put back non-dilated segments
-      rm(replace)
-    }
   }
   mode(segim_new)='integer'
   
@@ -215,12 +186,7 @@ adacs_MakeSegimDilateBitMatrix=function(bobjects=bobjects, bmask=NULL, size=9, s
   
   call=match.call()
   
-  if(!requireNamespace("EBImage", quietly = TRUE)){
-    stop('The EBImage package is needed for this function to work. Please install it from Bioconductor.', call. = FALSE)
-  }
-  
   kern = .makeBrush(size, shape=shape)
-  bkern = new(BitMatrix, kern)
   
   if(verbose){message(paste(" - Dilating segments -", round(proc.time()[3]-timestart,3), "sec"))}
   
@@ -232,7 +198,9 @@ adacs_MakeSegimDilateBitMatrix=function(bobjects=bobjects, bmask=NULL, size=9, s
   }
   
   if(expand[1]=='all'){
-    bobjects$dilatefast(kern)
+    bobjects$dilate(kern)
+  }else{
+    stop('expand must be \'all\' for MakeSegimDilateBitMatrix', call. = FALSE)
   }
   
   if(verbose){message(paste(" - profoundMakeSegimDilate is finished! -", round(proc.time()[3]-timestart,3), "sec"))}
@@ -538,11 +506,11 @@ adacs_SegimStats=function(image=NULL, segim=NULL, bmask=NULL, sky=NULL, skyRMS=N
   invisible(as.data.frame(segstats[order(segstats[[sortcol]], decreasing=decreasing),]))
 }
 
-adacs_SegimPlot=function(image=NULL, segim=NULL, mask=NULL, bmask=NULL, sky=NULL, header=NULL, col=rainbow(max(segim), end=2/3), profound=NULL, ...){
+adacs_SegimPlot=function(image=NULL, segim=NULL,  bmask=NULL, sky=NULL, header=NULL, col=rainbow(max(segim), end=2/3), profound=NULL, ...){
   if(!is.null(image)){
     if(class(image)=='profound'){
       if(is.null(segim)){segim=image$segim}
-      if(is.null(mask)){mask=image$mask}
+      if(is.null(bmask)){bmask=image$bmask}
       if(is.null(sky)){sky=image$sky}
       if(is.null(header)){header=image$header}
       image=image$image
@@ -556,7 +524,6 @@ adacs_SegimPlot=function(image=NULL, segim=NULL, mask=NULL, bmask=NULL, sky=NULL
     if(is.null(image)){image=profound$image}
     if(is.null(image)){stop('Need image in profound object to be non-Null')}
     if(is.null(segim)){segim=profound$segim}
-    if(is.null(mask)){mask=profound$mask}
     if(is.null(bmask)){bmask=profound$bmask}
     if(is.null(sky)){sky=profound$sky}
     if(is.null(header)){header=profound$header}
@@ -602,9 +569,10 @@ adacs_SegimPlot=function(image=NULL, segim=NULL, mask=NULL, bmask=NULL, sky=NULL
     z=z[ceiling(temp$x), ceiling(temp$y)]
     contour(temp$x,temp$y,z,add=T,col=col[i],zlim=c(0,1),drawlabels=FALSE,nlevels=1)
   }
-  if(!is.null(mask)){
-    if(!is.null(mask)){
-      magimage(mask!=0, col=c(NA,hsv(alpha=0.2)), add=TRUE, magmap=FALSE, zlim=c(0,1))
-    }
+  if(!is.null(bmask)){
+    mask=matrix(0L,bmask$nrow(), bmask$ncol())
+    bmask$copyTo(mask)
+    magimage(mask!=0, col=c(NA,hsv(alpha=0.2)), add=TRUE, magmap=FALSE, zlim=c(0,1))
+    rm(mask)
   }
 }

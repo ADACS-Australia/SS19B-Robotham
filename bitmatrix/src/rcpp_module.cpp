@@ -239,88 +239,6 @@ if (occupied == buffer) {                             \
         }
       }
     }
-    
-    void BitMatrix::dilate(BitMatrix & kernel) {
-      BitMatrix destination;
-      destination = *this;
-      // convert kernel to search object
-      std::vector<int32_t> krow;
-      std::vector<int32_t> kcol;
-      krow.resize(kernel._npts);
-      kcol.resize(kernel._npts);
-      int length=0;
-      int midrow=kernel._nrows/2;
-      int midcol=kernel._ncols/2;
-      for (int i=0;i<kernel._ncols;i++) {
-        for (int j=0;j<kernel._nrows;j++) {
-          if (kernel.istrue(j,i)) {
-            krow[length] = j-midrow;
-            kcol[length] = i-midcol;
-            length++;
-          }
-        }
-      }
-      krow.resize(length);
-      kcol.resize(length);
-      
-      // apply the dilate operation (slowly)
-      for (int i=0; i<_ncols; i++) {
-        for (int j=0; j<_nrows; j++) {
-          if (istrue(j,i)) continue;  // already true
-          for (int k=0; k<length; k++) {
-            int ik=i+kcol[k];
-            int jk=j+krow[k];
-            if (ik<0 || ik>=_ncols || jk<0 || jk>=_nrows) continue; // outside
-            if (istrue(jk,ik)) {
-              destination.settrue(j,i);
-              break;
-            }
-          }
-        }
-      }
-      *this = destination;
-    }
-
-void BitMatrix::dilatesmarter(BitMatrix & kernel) {
-  BitMatrix destination;
-  destination = *this;
-  // convert kernel to search object
-  std::vector<int32_t> krow;
-  std::vector<int32_t> kcol;
-  krow.resize(kernel._npts);
-  kcol.resize(kernel._npts);
-  int length=0;
-  int midrow=kernel._nrows/2;
-  int midcol=kernel._ncols/2;
-  for (int i=0;i<kernel._ncols;i++) {
-    for (int j=0;j<kernel._nrows;j++) {
-      if (kernel.istrue(j,i)) {
-        krow[length] = j-midrow;
-        kcol[length] = i-midcol;
-        length++;
-      }
-    }
-  }
-  krow.resize(length);
-  kcol.resize(length);
-  
-  // apply the dilate operation (slowly)
-  for (int i=0; i<_ncols; i++) {
-    for (int j=0; j<_nrows; j++) {
-      if (istrue(j,i)) {
-        for (int k=0; k<length; k++) {
-          int ik=i+kcol[k];
-          int jk=j+krow[k];
-          if (ik<0 || ik>=_ncols || jk<0 || jk>=_nrows) continue; // outside
-          if (isfalse(jk,ik)) {
-            destination.settrue(jk,ik);
-          }
-        }
-      }
-    }
-  }
-  *this = destination;
-}
 
     std::vector<int> BitMatrix::_trues() const {
       return trues(1);
@@ -1806,34 +1724,11 @@ void BitMatrix::dilate_line(int ***T, BitMatrix & destination, chordSet *set, in
   }
 }
 
-void BitMatrix::_dilated (int nx, int ny, int nz, chordSet *set, int ***T) {
-  BitMatrix destination;
-  destination = *this;
-  PointXY size;
-  size.x = nx;
-  size.y = ny;
-    for (int j = set->minYoffset; j <= set->maxYoffset; ++j) {
-      compute_lookup_table_for_line_dilate(T, j, 0, set, size.x , size.y);
-    }
-    dilate_line(T, destination, set, 0, size.x);
-    for (int j = 1; j < size.y; ++j) {
-      int **first = T[set->minYoffset];
-      for (int k = set->minYoffset; k < set->maxYoffset; ++k) {
-        T[k] = T[k + 1];
-      }
-      T[set->maxYoffset] = first;
-      compute_lookup_table_for_line_dilate(T, set->maxYoffset, j, set, size.x, size.y);
-      dilate_line(T, destination, set, j, size.x);
-    }
-  *this = destination;
-}
-
-void BitMatrix::dilatefast (SEXP kernel) {
+void BitMatrix::dilate (SEXP kernel) {
   
   PointXY size;
   size.x = _nrows;
   size.y = _ncols;
-  int nz = 1;
   
   PointXY ksize;
   ksize.x = INTEGER ( GET_DIM(kernel) )[0];
@@ -1842,7 +1737,23 @@ void BitMatrix::dilatefast (SEXP kernel) {
   chordSet set=buildChordSet<int>(INTEGER(kernel), ksize);
   int ***T = allocate_lookup_table<int>(&set, size.x);
   
-  _dilated(size.x, size.y , nz, &set, T);
+  //_dilated(size.x, size.y , nz, &set, T);
+  BitMatrix destination;
+  destination = *this;
+  for (int j = set.minYoffset; j <= set.maxYoffset; ++j) {
+    compute_lookup_table_for_line_dilate(T, j, 0, &set, size.x , size.y);
+  }
+  dilate_line(T, destination, &set, 0, size.x);
+  for (int j = 1; j < size.y; ++j) {
+    int **first = T[set.minYoffset];
+    for (int k = set.minYoffset; k < set.maxYoffset; ++k) {
+      T[k] = T[k + 1];
+    }
+    T[set.maxYoffset] = first;
+    compute_lookup_table_for_line_dilate(T, set.maxYoffset, j, &set, size.x, size.y);
+    dilate_line(T, destination, &set, j, size.x);
+  }
+  *this = destination;
   
   free_lookup_table<int>(T, &set);
   R_Free(set.C);

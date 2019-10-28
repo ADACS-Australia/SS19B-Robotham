@@ -32,18 +32,19 @@ what=$1
 # scale=2 is 712x712
 # scale=3 is 1424x712
 # and so forth...
-rm -f bobjects-faster-$what.csv
-start_experiment "Profiling image size v/s time for box = 20" >> bobjects-faster-$what.csv
+export profileout=28oct-$what.csv
+rm -f $profileout
+start_experiment "Profiling image size v/s time for box = 20" >> $profileout
 for image_scale_steps in 0 2 4 6 8; do
-	run_profound 20 $image_scale_steps >> bobjects-faster-$what.csv
+	run_profound 20 $image_scale_steps >> $profileout
 done
 
 start_experiment "Profiling box size v/s memory for image_size = 7.7 Mpix"
 for box_size in 10 20 30 40 50 60; do
-	run_profound $box_size 6 >> bobjects-faster-$what.csv
+	run_profound $box_size 6 >> $profileout
 done
 
 start_experiment "Profiling box size v/s memory for image_size = 30.9 Mpix"
 for box_size in 10 20 30 40 50 60; do
-	run_profound $box_size 8 >> bobjects-faster-$what.csv
+	run_profound $box_size 8 >> $profileout
 done

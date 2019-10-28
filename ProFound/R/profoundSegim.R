@@ -760,13 +760,14 @@ profoundSegimNear=function(segim=NULL, offset=1){
 }
 
 profoundSegimGroup=function(segim=NULL){
-  if(!requireNamespace("EBImage", quietly = TRUE)){
-    stop('The EBImage package is needed for this function to work. Please install it from Bioconductor.', call. = FALSE)
+  if(!requireNamespace("imager", quietly = TRUE)){
+    stop('The imager package is needed for this function to work. Please install it from CRAN', call. = FALSE)
   }
   
   Ngroup=NULL; segID=NULL; Npix=NULL
   
-  groupim=EBImage::bwlabel(segim)
+  ##groupim=EBImage::bwlabel(segim)
+  groupim = as.matrix(imager::label(imager::as.cimg(segim>0)))
   segimDT=data.table(segID=as.integer(segim), groupID=as.integer(groupim))
   segimDT[groupID>0,groupID:=which.max(tabulate(groupID)),by=segID]
   groupID=segimDT[groupID>0,.BY,by=groupID]$groupID
@@ -918,69 +919,4 @@ profoundSegimExtend=function(image=NULL, segim=NULL, mask=segim, ...){
   setkey(output, segID)
   
   return(as.data.frame(output))
-}
-
-.makeBrush = function(size, shape=c('box', 'disc', 'diamond', 'Gaussian', 'line'), step=TRUE, sigma=0.3, angle=45) {
-  if(! (is.numeric(size) && (length(size)==1L) && (size>=1)) ) stop("'size' must be an odd integer.")
-  shape = match.arg(arg = tolower(shape), choices = c('box', 'disc', 'diamond', 'gaussian', 'line'))
-  
-  if(size %% 2 == 0){
-    size = size + 1
-    warning(paste("'size' was rounded to the next odd number: ", size))
-  }
-  
-  if (shape=='box') z = matrix(1L, size, size)
-  else if (shape == 'line') {
-    angle = angle %% 180
-    angle.radians = angle * pi / 180;
-    tg = tan(angle.radians)
-    sizeh = (size-1)/2
-    if ( angle < 45 || angle > 135) {
-      z.x = sizeh
-      z.y = round(sizeh*tg)
-    }
-    else {
-      z.y = sizeh
-      z.x = round(sizeh/tg)
-    }
-    z = array(0L, dim=2*c(z.x, z.y)+1);
-    for (i in -sizeh:sizeh) {
-      if ( angle < 45 || angle > 135) {
-        ## scan horizontally
-        i.x = i
-        i.y = round(i*tg)
-      }
-      else {
-        ## scan vertically
-        i.y = i
-        i.x = round(i/tg) 
-      }
-      z[i.x+z.x+1, i.y+z.y+1] = 1L
-    }
-  }
-  else if (shape=='gaussian') {
-    x = seq(-(size-1)/2, (size-1)/2, length=size)
-    x = matrix(x, size, size)
-    z = exp(- (x^2 + t(x)^2) / (2*sigma^2))
-    z = z / sum(z)
-  } else {
-    ## pixel center coordinates
-    x = 1:size -((size+1)/2)
-    
-    ## for each pixel, compute the distance from its center to the origin, using L1 norm ('diamond') or L2 norm ('disc')
-    if (shape=='disc') {
-      z = outer(x, x, FUN=function(X,Y) (X*X+Y*Y))
-      mz = (size/2)^2
-      z = (mz - z)/mz
-      z = sqrt(ifelse(z>0, z, 0))
-    } else {
-      z = outer(x, x, FUN=function(X,Y) (abs(X)+abs(Y)))
-      mz = (size/2)
-      z = (mz - z)/mz
-      z = ifelse(z>0, z, 0)
-    }
-    
-    if (step) z = ifelse(z>0, 1L, 0L)
-  }
-  z
 }

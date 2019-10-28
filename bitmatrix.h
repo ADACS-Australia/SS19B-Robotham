@@ -46,15 +46,12 @@ public:
     void maskValue(NumericMatrix x, double value);
     void clearValue(IntegerMatrix x, int value);
     void copyTo(IntegerMatrix x);
-    void dilate(BitMatrix & kernel);
-    void dilatesmarter(BitMatrix & kernel);
-    void dilatefast(SEXP kernel);
+    void dilate(SEXP kernel);
 
     std::vector<int> trues(int32_t offset=0) const; // 0 relative
     std::vector<int> _trues() const;                // 1 relative
 
 private:
-  void _dilated (int nx, int ny, int nz, chordSet *set, int ***T);
   void dilate_line(int ***, BitMatrix & destination, chordSet *, int, int);
   void compute_lookup_table_for_line_dilate(int ***T, int yOff, int line, chordSet *set, int nx, int ny);
   bool _isnull;
@@ -226,8 +223,6 @@ RCPP_MODULE(yada){
     .const_method("isnull", &BitMatrix::isnull, "is this object null or not null")
     .method("setnull", &BitMatrix::setnull, "set this object as null or not null")
     .method("dilate", &BitMatrix::dilate, "apply the morphological dilate operation")
-    .method("dilatesmarter", &BitMatrix::dilatesmarter, "apply the morphological dilate operation")
-    .method("dilatefast", &BitMatrix::dilatefast, "apply the morphological dilate operation. ported from EBImage")
     ;
     
     class_<AdacsHistogram>("AdacsHistogram")

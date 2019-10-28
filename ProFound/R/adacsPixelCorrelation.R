@@ -10,8 +10,8 @@ adacs_PixelCorrelation=function(image=NULL, bobjects=NULL, bmask=NULL, sky=0, sk
   flag_neg=image<0
   flag_pos=image>0
   
-  if(!is.null(objects)){
-    image[objects>0]=NA
+  if(!is.null(bobjects)){
+    image[bobjects$trues()]=NA
   }
   
   image[bmask$trues()]=NA
@@ -89,71 +89,4 @@ adacs_PixelCorrelation=function(image=NULL, bobjects=NULL, bmask=NULL, sky=0, sk
   }
   
   invisible(list(cortab=output_cortab, fft=output_FFT, image_sky=image, cor_err_func=cor_err_func))
-}
-
-adacsSkySplitFFT=function(image=NULL, objects=NULL, bmask=NULL, sky=0, skyRMS=1, skyscale=100, profound=NULL){
-  if(!is.null(image)){
-    if(class(image)=='profound'){
-      if(is.null(objects)){objects=image$objects_redo}
-      if(is.null(bmask)){mask=image$bmask}
-      if(missing(sky)){sky=image$sky}
-      if(missing(skyRMS)){skyRMS=image$skyRMS}
-      image=image$image
-      if(is.null(image)){stop('Need image in profound object to be non-Null')}
-    }
-  }
-  if(!is.null(profound)){
-    if(class(profound) != 'profound'){
-      stop('Class of profound input must be of type \'profound\'')
-    }
-    if(is.null(image)){image=profound$image}
-    if(is.null(image)){stop('Need image in profound object to be non-Null')}
-    if(is.null(objects)){objects=profound$objects_redo}
-    if(is.null(bmask)){bmask=profound$bmask}
-    if(missing(sky)){sky=profound$sky}
-    if(missing(skyRMS)){skyRMS=profound$skyRMS}
-  }
-  
-  xlen=dim(image)[1]
-  ylen=dim(image)[2]
-  
-  xlenpad=xlen+xlen%%2
-  ylenpad=ylen+ylen%%2
-  
-  hassky=!missing(sky)
-  hasskyRMS=!missing(skyRMS)
-  
-  image=image-sky
-  
-  if(!is.null(mask)){
-    if(!hassky | !hasskyRMS){stop('Need sky and skyRMS for mask padding')}
-    sel_mask=bmask$trues()
-    skyRMS[sel_mask]=mean(skyRMS[!sel_mask])
-  }
-  
-  if(!is.null(objects)){
-    if(is.null(objects)==FALSE){
-      if(!hassky | !hasskyRMS){stop('Need sky and skyRMS for object padding')}
-      sel_objects=objects>0
-      image[sel_objects]=rnorm(length(which(sel_objects)),mean=0,sd=skyRMS[sel_objects])
-    }
-  }
-  
-  if(!is.null(mask)){
-    if(!hassky | !hasskyRMS){stop('Need sky and skyRMS for mask padding')}
-    sel_mask=bmask$trues()
-    image[sel_mask]=rnorm(length(which(sel_mask)),mean=0,sd=skyRMS[sel_objects])
-  }
-
-  fft_orig=fft(image)
-  clipfreqx=ceiling(xlen/skyscale)
-  clipfreqy=ceiling(ylen/skyscale)
-  
-  fft_orig[1:clipfreqx, 1:clipfreqy]=0
-  fft_orig[xlen+1-1:clipfreqx, 1:clipfreqy]=0
-  fft_orig[1:clipfreqx, ylen+1-1:clipfreqy]=0
-  fft_orig[xlen+1-1:clipfreqx, ylen+1-1:clipfreqy]=0
-  
-  image_new=Re(fft(fft_orig,inverse=TRUE))/prod(xlen,ylen)
-  invisible(list(sky=sky+image-image_new, sky_lo=image-image_new, sky_hi=image_new))
 }
