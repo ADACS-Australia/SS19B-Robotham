@@ -118,7 +118,6 @@ adacs_ProFound=function(image=NULL, segim=NULL, bobjects=NULL, bmask=NULL, skycu
   }
   
   # Create scratch matrices
-  #scratch <- list(scratchN1=matrix(0.0,box[1],box[2]), scratchN2=matrix(0.0,box[1],box[2]),scratchI1=matrix(FALSE,box[1],box[2]), scratchI2=matrix(FALSE,box[1],box[2]))
   scratch <- list(scratchSKY=matrix(0.0,dim(image)[1],dim(image)[2]),
                   scratchSKYRMS=matrix(0.0,dim(image)[1],dim(image)[2]))
   

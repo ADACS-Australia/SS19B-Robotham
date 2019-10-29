@@ -195,11 +195,7 @@ profoundMakeSegim=function(image=NULL, mask=NULL, objects=NULL, skycut=1, pixcut
     if(requireNamespace("imager", quietly = TRUE)){
       image=as.matrix(imager::isoblur(imager::as.cimg(image),sigma))
     }else{
-      if(!requireNamespace("EBImage", quietly = TRUE)){
-        stop('The imager or EBImage package is needed for smoothing to work. Please install from CRAN.', call. = FALSE)
-      }
-      message(" - WARNING: imager package not installed, using EBImage gblur smoothing!")
-      image=as.matrix(EBImage::gblur(image,sigma))
+      stop('The imager package is needed for smoothing to work. Please install from CRAN.', call. = FALSE)
     }
   }else{
     if(verbose){message(" - Skipping smoothing - smooth set to FALSE")}
@@ -766,7 +762,6 @@ profoundSegimGroup=function(segim=NULL){
   
   Ngroup=NULL; segID=NULL; Npix=NULL
   
-  ##groupim=EBImage::bwlabel(segim)
   groupim = as.matrix(imager::label(imager::as.cimg(segim>0)))
   segimDT=data.table(segID=as.integer(segim), groupID=as.integer(groupim))
   segimDT[groupID>0,groupID:=which.max(tabulate(groupID)),by=segID]

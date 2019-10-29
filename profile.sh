@@ -32,7 +32,7 @@ what=$1
 # scale=2 is 712x712
 # scale=3 is 1424x712
 # and so forth...
-export profileout=28oct-$what.csv
+export profileout=28oct-merge-$what.csv
 rm -f $profileout
 start_experiment "Profiling image size v/s time for box = 20" >> $profileout
 for image_scale_steps in 0 2 4 6 8; do
