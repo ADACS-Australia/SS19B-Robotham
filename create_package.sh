@@ -15,6 +15,8 @@ RScript tmp_create_package.R
 
 rm -f bitmatrix/src/Num.cpp
 rm -f bitmatrix/src/stdVector.cpp
+mv bitmatrix/src/rcpp_module.cpp bitmatrix/src/bitmatrix.cpp
+mv bitmatrix/src/rcpp_module.hpp bitmatrix/src/module.h
 cat > bitmatrix/R/zzz.R << !
 ## Up until R 2.15.0, the require("methods") is needed but (now)
 ## triggers an warning from R CMD check
@@ -26,7 +28,7 @@ cat > bitmatrix/R/zzz.R << !
 
 ## For R 2.15.1 and later this also works. Note that calling loadModule() triggers
 ## a load action, so this does not have to be placed in .onLoad() or evalqOnLoad().
-loadModule("yada", TRUE)
+Rcpp::loadModule("adacs", TRUE)
 !
 
 cat > tmp_patch_package.R << !

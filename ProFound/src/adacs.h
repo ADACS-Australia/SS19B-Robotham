@@ -1,7 +1,10 @@
-#ifndef rcpp_bitmatrix_module_h
-#define rcpp_bitmatrix_module_h
+#ifndef adacs_module_h
+#define adacs_module_h
 #include <Rcpp.h>
-//#include "bitmatrix_RcppExports.h"
+using namespace Rcpp;
+RCPP_EXPOSED_CLASS(BitMatrix)
+RCPP_EXPOSED_CLASS(AdacsHistogram)
+
 using namespace Rcpp;
 
 typedef struct {
@@ -198,7 +201,7 @@ public:
                           Rcpp::NumericMatrix sky, Rcpp::NumericMatrix skyRMS
   );
 };
-RCPP_MODULE(yada){
+RCPP_MODULE(adacs){
     using namespace Rcpp ;
 
     class_<BitMatrix>("BitMatrix")

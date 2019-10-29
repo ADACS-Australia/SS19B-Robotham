@@ -198,7 +198,7 @@ public:
                           Rcpp::NumericMatrix sky, Rcpp::NumericMatrix skyRMS
   );
 };
-RCPP_MODULE(yada){
+RCPP_MODULE(adacs){
     using namespace Rcpp ;
 
     class_<BitMatrix>("BitMatrix")

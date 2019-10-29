@@ -21,3 +21,7 @@ water_cpp_old <- function(image = 0L, nx = 1L, ny = 1L, abstol = 1, reltol = 0, 
     .Call(`_ProFound_water_cpp_old`, image, nx, ny, abstol, reltol, cliptol, ext, skycut, pixcut, verbose, Ncheck)
 }
 
+# Register entry points for exported C++ functions
+methods::setLoadAction(function(ns) {
+    .Call('_ProFound_RcppExport_registerCCallable', PACKAGE = 'ProFound')
+})
