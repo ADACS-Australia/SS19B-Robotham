@@ -1,6 +1,4 @@
 library(ProFound)
-library(stringi)
-library(bitmatrix)
 
 args = commandArgs(TRUE)
 box_size = as.integer(args[1])
