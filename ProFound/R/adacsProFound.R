@@ -1,3 +1,7 @@
+# Entry point to the ADACS optimised equivalent to profoundProFound
+# Note that this function returns BitMatrix results (bobjects and bmask) instead of IntegerMatrix results (objects, mask)
+# If the original profoundProFound function returns are needed then a "wrapper" function should be used (see function adacs_ProFoundWrapper as to how this may look)
+
 adacs_ProFound=function(image=NULL, segim=NULL, bobjects=NULL, bmask=NULL, skycut=1, pixcut=3, tolerance=4, ext=2, reltol=0, cliptol=Inf, sigma=1, smooth=TRUE, SBlim=NULL, size=5, shape='disc', iters=6,
                                       threshold=1.05, magzero=0, gain=NULL, pixscale=1, sky=NULL, skyRMS=NULL, redosegim=FALSE, redosky=TRUE, redoskysize=21, box=c(101,101), grid=box,
                                       type='bicubic', skytype='median', skyRMStype='quanlo', roughpedestal=FALSE, sigmasel=1, skypixmin=prod(box)/2, boxadd=box/2, boxiters=0, iterskyloc=TRUE, deblend=FALSE, df=3, radtrunc=2, iterative=FALSE, doclip=TRUE,
@@ -9,6 +13,17 @@ adacs_ProFound=function(image=NULL, segim=NULL, bobjects=NULL, bmask=NULL, skycu
   timestart=proc.time()[3]
   
   call=match.call()
+  
+  # check some args passed in
+  if (is.null(enumForInterpolationType(type))) {
+    stop('type must be one of: bilinear,  bicubic!')
+  }
+  if (is.null(enumForSkyType(skytype))) {
+    stop('skytype must be one of: median, mean, mode, adacs_median, adacs_mean, adacs_mode!')
+  }
+  if (is.null(enumForSkyRMSType(skyRMStype))) {
+    stop(paste('skyRMStype(',skyRMStype,') must be one of: quanboth, quanlo, quanhi, sd, adacs_quanboth, adacs_quanlo, adacs_quanhi, adacs_sd!'))
+  }
   
   if(length(box)==1){
     box=rep(box,2)
@@ -441,5 +456,42 @@ adacs_ProFound=function(image=NULL, segim=NULL, bobjects=NULL, bmask=NULL, skycu
     output=list(segim=NULL, segim_orig=NULL, bobjects=NULL, bobjects_redo=NULL, sky=sky, skyRMS=skyRMS, image=image, bmask=bmask, segstats=NULL, Nseg=0, near=NULL, group=NULL, groupstats=NULL, haralick=NULL, header=header, SBlim=NULL,  magzero=magzero, dim=dim(segim), pixscale=pixscale, skyarea=skyarea, gain=gain, call=call, date=date(), time=proc.time()[3]-timestart, ProFound.version=packageVersion('ProFound'), R.version=R.version)
   }
   class(output)='profound'
+  invisible(output)
+}
+# A "wrapper" for illustrative purposes
+adacs_ProFoundWrapper=function(image=NULL, segim=NULL, objects=NULL, mask=NULL, skycut=1, pixcut=3, tolerance=4, ext=2, reltol=0, cliptol=Inf, sigma=1, smooth=TRUE, SBlim=NULL, size=5, shape='disc', iters=6,
+                        threshold=1.05, magzero=0, gain=NULL, pixscale=1, sky=NULL, skyRMS=NULL, redosegim=FALSE, redosky=TRUE, redoskysize=21, box=c(101,101), grid=box,
+                        type='bicubic', skytype='median', skyRMStype='quanlo', roughpedestal=FALSE, sigmasel=1, skypixmin=prod(box)/2, boxadd=box/2, boxiters=0, iterskyloc=TRUE, deblend=FALSE, df=3, radtrunc=2, iterative=FALSE, doclip=TRUE,
+                        shiftloc = FALSE, paddim = TRUE, header=NULL, verbose=FALSE, plot=FALSE, stats=TRUE, rotstats=FALSE, boundstats=FALSE, nearstats=boundstats, groupstats=boundstats, group=NULL, groupby='segim_orig',
+                        offset=1, haralickstats=FALSE, sortcol="segID", decreasing=FALSE, lowmemory=FALSE, keepim=TRUE, watershed='ProFound', pixelcov=FALSE, deblendtype='fit', psf=NULL, fluxweight='sum',
+                        convtype = 'brute', convmode = 'extended', fluxtype='Raw', app_diam=1, Ndeblendlim=Inf, ...){
+  if (is.null(objects)) {
+    bobjects = new(BitMatrix, dim(image)[1], dim(image)[2])
+  } else {
+    bobjects = new(bitMatrix, objects)
+  }
+  if (is.null(mask)) {
+    bmask = new(BitMatrix, dim(image)[1], dim(image)[2])
+  } else {
+    bmask = new(bitMatrix, mask)
+  }
+  r = adacs_ProFound(image=image,segim=segim, bobjects=bojbects, bmask=bmask, skycut=skycut, pixcut=pixcut, tolerance=tolerance, ext=ext, reltol=reltol, cliptol=cliptol, sigma=sigma, smooth=smooth, SBlim=SBlim, size=size, shape=shape, iters=iters,
+                 threshold=threshold, magzero=magzero, gain=gain, pixscale=pixscale, sky=sky, skyRMS=skyRMS, redosegim=redosegim, redosky=redosky, redoskysize=redoskysize, box=box, grid=grid,
+                 type=type, skytype=skytype, skyRMStype=skyRMStype, roughpedestal=roughpedestal, sigmasel=sigmasel, skypixmin=skypixmin, boxadd=boxadd, boxiters=boxiters, iterskyloc=iterskyloc, deblend=deblend, df=df, radtrunc=radtrunc, iterative=iterative, doclip=doclip,
+                 shiftloc = shiftloc, paddim = paddim, header=header, verbose=verbose, plot=plot, stats=stats, rotstats=rotstats, boundstats=boundstats, nearstats=nearstats, groupstats=groupstats, group=group, groupby=groupby,
+                 offset=offset, haralickstats=haralickstats, sortcol=sortcol, decreasing=decreasing, lowmemory=lowmemory, keepim=keepim, watershed=watershed, pixelcov=pixelcov, deblendtype=deblendtype, psf=psf, fluxweight=fluxweight,
+                 convtype = convtype, convmode = convmode, fluxtype=fluxtype, app_diam=app_diam, Ndeblendlim=Ndeblendlim)
+  if (!is.null(objects)) {
+    r.bobjects$copyTo(objects)
+  }
+  if (!is.null(mask)) {
+    r.bmask$copyTo(mask)
+  }
+  if (!is.null(bobjects_redo)) {
+    objects_redo = matrix(0L,dim(image)[1],dim(image)[2])
+    bobjects_redo$copyTo(objects_redo)
+  }
+  output=list(segim=r.segim, segim_orig=r.segim_orig, objects=objects, objects_redo=objects_redo, sky=r.sky, skyRMS=r.skyRMS, image=r.image, mask=mask, segstats=r.segstats, Nseg=r.Nseg, near=r.near, group=r.group, groupstats=r.groupstats, 
+              haralick=r.haralick, header=r.header, SBlim=r.SBlim, magzero=r.magzero, dim=r.dim, pixscale=r.pixscale, skyarea=r.skyarea, gain=r.gain, call=r.call, date=r.date, time=r.time, ProFound.version=packageVersion('ProFound'), R.version=R.version)
   invisible(output)
 }

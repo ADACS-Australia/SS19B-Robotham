@@ -45,26 +45,14 @@
 #define MIN(a,b) (a)<(b)?(a):(b)
 #define ABS(a) (a)<0?(-a):(a)
 
+/**
+ * These two static instantiations pull in the R quantile method so it can be called from C++
+ * See adacs_RLO, adacs_RHI, and adacs_RBOTH
+ */
 Rcpp::Environment rstats("package:stats");
 Rcpp::Function quantile=rstats["quantile"];
 
 #include "Rdefines.h"
-typedef struct {
-  int x, y;
-} PointXY;
-
-#define INDEX_FROM_XY(x, y, xsize) ((x) + (y) * (xsize))
-#define POINT_FROM_INDEX(pt, index, xsize) pt.x = index % xsize; pt.y = index / xsize;
-
-#define DILATE 0
-
-#define BUF_LENGTH 10
-
-#define CHECK_BUFFER(pointer, occupied, buffer, type) \
-if (occupied == buffer) {                             \
-  buffer += BUF_LENGTH;                               \
-  pointer = R_Realloc(pointer, buffer, type);         \
-}
 
     BitMatrix::BitMatrix() {
       _isnull = true;
@@ -225,7 +213,7 @@ if (occupied == buffer) {                             \
         }
       }
     }
-    
+
     void BitMatrix::copyTo(IntegerMatrix mask) {
       for (int j=0;j<_ncols;j++) {
         for (int i=0;i<_nrows;i++) {
@@ -238,29 +226,73 @@ if (occupied == buffer) {                             \
       }
     }
 
+/**
+ * The BitMatrix version of dilate_cpp
+ */
+    void BitMatrix::dilatesparse(IntegerMatrix kernel) {
+      BitMatrix destination;
+      destination = *this;
+      // convert kernel to search object
+      std::vector<int32_t> krow;
+      std::vector<int32_t> kcol;
+      int knrow = kernel.nrow();
+      int kncol = kernel.ncol();
+      int midrow=knrow/2;
+      int midcol=kncol/2;
+      for (int i=0;i<kncol;i++) {
+        for (int j=0;j<knrow;j++) {
+          if (kernel(j,i)==1) {
+            krow.push_back(j-midrow);
+            kcol.push_back(i-midcol);
+          }
+        }
+      }
+      int length=krow.size();
+      
+      // apply the dilate operation
+      for (int i=0; i<_ncols; i++) {
+        for (int j=0; j<_nrows; j++) {
+          if (istrue(j,i)) {
+            for (int k=0; k<length; k++) {
+              int ik=i+kcol[k];
+              int jk=j+krow[k];
+              if (ik<0 || ik>=_ncols || jk<0 || jk>=_nrows) continue; // outside
+              destination.settrue(jk,ik);
+              }
+            }
+          }
+      }
+      *this = destination;
+    }
+ /**
+ * Equivalent to "which(objects==1)".  Called from R and returning 1 relative indices
+ */
     std::vector<int> BitMatrix::_trues() const {
       return trues(1);
     }
     
+    /**
+     * Indices of "true" entries. Either 1 or 0 relative.
+     */
     std::vector<int> BitMatrix::trues(int32_t offset) const {
         std::vector<int> out;
-        //out.resize(_npts);
         int count=0;
         int index=offset;
         for (int j = 0; j < _ncols; j++) {
             for (int i = 0; i < _nrows; i++) {
                 if (istrue(i,j)) {
-                    //out[count] = index;
                     out.push_back(index);
                     count++;
                 }
                 index++;
             }
         }
-        //out.resize(count);
         return out;
     }
 
+/**
+ * Histograming methods
+ */
 AdacsHistogram::AdacsHistogram() {
   
 }
@@ -439,40 +471,10 @@ double AdacsHistogram::quantile(double quantile, double offset) const {
   }
   return quantileValue;
 }
-    void Adacs::subset_cpp_inplace(
-        Rcpp::NumericMatrix image, const int scol, const int ecol, const int srow, const int erow, const int coffset, const int roffset, Rcpp::NumericMatrix oimage)
-    {
-      // 0 relative
-      int sscol = scol-1;
-      int eecol = ecol-1;
-      int ssrow = srow-1;
-      int eerow = erow-1;
-      
-      std::fill( oimage.begin(), oimage.end(), NA_REAL ) ;
-      for (int i = ssrow; i <= eerow; i++) {
-        for (int j = sscol; j <= eecol; j++) {
-          //Rcpp::Rcout << "   in " << i-roffset-ssrow << " " << j-roffset-sscol << "\n";
-          oimage(i-roffset,j-coffset) = image(i, j);
-        }
-      }
-    }
-    void Adacs::subset_cpp_inplaceI(
-        Rcpp::IntegerMatrix image, const int scol, const int ecol, const int srow, const int erow, const int coffset, const int roffset, Rcpp::LogicalMatrix oimage)
-    {
-      // 0 relative
-      int sscol = scol-1;
-      int eecol = ecol-1;
-      int ssrow = srow-1;
-      int eerow = erow-1;
-      
-      std::fill( oimage.begin(), oimage.end(), NA_LOGICAL ) ;
-      for (int i = ssrow; i <= eerow; i++) {
-        for (int j = sscol; j <= eecol; j++) {
-          //Rcpp::Rcout << "   in " << i-roffset-ssrow << " " << j-roffset-sscol << "\n";
-          oimage(i-roffset,j-coffset) = image(i, j)==0;
-        }
-      }
-    }
+/*
+ * Search neighbourhood of (loc1, loc2) for at least skypixmin viable "sky" values.
+ * Expand the box by boxadd until enough found.
+ */
     Rcpp::NumericVector Adacs::Cadacs_FindSkyCellValues(Rcpp::NumericMatrix image,
                                                         BitMatrix & bobjects, BitMatrix & bmask, 
                                                         const double loc1, const double loc2, const double box1, const double box2, const double boxadd1, const double boxadd2, 
@@ -485,8 +487,6 @@ double AdacsHistogram::quantile(double quantile, double offset) const {
       int ibox2 = (int)(box2/2);
       int nrow = image.nrow();
       int ncol = image.ncol();
-      
-      //Rcpp::Rcout << "\nCbox "<<ssrow<<" "<<eerow<<" "<<sscol<<" "<<eecol<<"\n";
       
       const double_t* iiimage=REAL(image);
       
@@ -522,7 +522,6 @@ double AdacsHistogram::quantile(double quantile, double offset) const {
         iboxadd2 = (int)(boxadd2/2);
         
       }
-      //Rcpp::Rcout << " skyN="<<skyN<<"\n";
       // copy sky cell values to vec and return
       Rcpp::NumericVector vec(skyN);
       int k=0;
@@ -536,135 +535,10 @@ double AdacsHistogram::quantile(double quantile, double offset) const {
       }
       return vec;
     }
-    Rcpp::IntegerVector Adacs::Cadacs_FindSkyCellValuesBoxC(Rcpp::NumericMatrix image, Rcpp::Nullable<Rcpp::IntegerMatrix> objects, Rcpp::Nullable<Rcpp::IntegerMatrix> mask,
-                                                     const double loc1, const double loc2,
-                                                     const double box1, const double box2,
-                                                     const double boxadd1, const double boxadd2,
-                                                     const int skypixmin, const int boxiters)
-    {
-      // This method is only needed for plotting (and therefore only for testing)
-      // R is 1 relative
-      int iloc1 = (int)(loc1+0.5);
-      int iloc2 = (int)(loc2+0.5);
-      int ibox1 = (int)(box1/2);
-      int ibox2 = (int)(box2/2);
-      int nrow = image.nrow();
-      int ncol = image.ncol();
-      
-      Rcpp::IntegerMatrix iobjects;
-      const int32_t* iiobjects=NULL;
-      if (objects.isNotNull()) {
-        iobjects = Rcpp::as<Rcpp::IntegerMatrix>(objects);
-        iiobjects=INTEGER(objects.get());
-      }
-      Rcpp::IntegerMatrix imask;
-      const int32_t* iimask=NULL;
-      if (mask.isNotNull()) {
-        imask = Rcpp::as<Rcpp::IntegerMatrix>(mask);
-        iimask=INTEGER(objects.get());
-      }
-      
-      int iboxadd1=0;
-      int iboxadd2=0;
-      int skyN=0;
-      int iterN=0;
-      int ssrow = 1;
-      int eerow = 0;
-      int sscol = 1;
-      int eecol = 0;
-      
-      while(skyN<skypixmin & iterN<=boxiters){
-        skyN = 0;
-        ibox1 += iboxadd1;
-        ibox2 += iboxadd2;
-        ssrow = MAX(1,iloc1-ibox1);
-        eerow = MIN(nrow,iloc1+ibox1);
-        sscol = MAX(1,iloc2-ibox2);
-        eecol = MIN(ncol,iloc2+ibox2);
-        
-        for (int j = sscol; j <= eecol; j++) {
-          int ii=(j-1)*ncol+(ssrow-1);
-          for (int i = ssrow; i <= eerow; i++,ii++) {
-            // Count sky cells (sky cells are those NOT masked out and NOT objects)
-            if ((iiobjects!=NULL && iiobjects[ii]==0) && (iimask==NULL || iimask[ii]==0)) {
-              skyN++;
-            }
-          }
-        }
-        iterN++;
-        iboxadd1 = (int)(boxadd1/2);
-        iboxadd2 = (int)(boxadd2/2);
-        
-      }
-      // copy sky cell values to vec and return
-      Rcpp::IntegerVector vec(2);
-      vec[0] = ibox1;
-      vec[1] = ibox2;
-      return vec;
-    }
-    Rcpp::NumericVector Adacs::adacsmagclip(Rcpp::NumericMatrix x, const int sigma, const int clipiters, const double sigmasel, const int estimate){
-      const double_t* iiix=REAL(x);
-      int nrow = x.nrow();
-      int ncol = x.ncol();
-      std::vector<double_t> myx (iiix, iiix+nrow*ncol);
-      int length=0;
-      for (int i=0;i<nrow*ncol;i++)
-      {
-        if (!std::isnan(myx[i])) {
-          myx[length++] = myx[i];
-        }
-      }
-      std::sort (myx.begin(), myx.begin()+length, std::less<double_t>()); // ascending
-      
-      int newlen = length;
-      if(clipiters>0 & length>0){
-        double sigcut=R::pnorm(sigmasel, 0.0, 1.0, 1, 0);
-        //double sigcut=0.8;
-        
-        for(int iteration=0; iteration<clipiters; iteration++){
-          if(newlen<=1)
-            break;
-          int oldlen=newlen;
-          double_t roughmed=myx[newlen/2-1];
-          double_t clipsigma=sigma;
-          if (sigma==1) {
-            double l1=MAX(newlen,2);
-            double_t y=1.0-2.0/l1;
-            clipsigma = R::qnorm(y, 0.0, 1.0, 1, 0);
-          }
-          
-          double_t vallims = 0;
-          switch(estimate) {
-          case 1:
-            vallims = clipsigma*(myx[sigcut*newlen-1]-myx[(1-sigcut)*newlen-1])/2/sigmasel;
-            break;
-          case 2:
-            vallims = clipsigma*(roughmed-myx[(1-sigcut)*newlen-1])/sigmasel;
-            break;
-          case 3:
-            vallims = clipsigma*(myx[sigcut*newlen-1]-roughmed)/sigmasel;
-            break;
-          }
-          newlen = 0;
-          for (int i=0;i<oldlen;i++)
-          {
-            if(myx[i]>=(roughmed-vallims) && myx[i]<=(roughmed+vallims))
-            {
-              myx[newlen++] = myx[i];
-            }
-          }
-          if(oldlen==newlen)
-            break;
-        }
-      }
-      // copy sky cell values to vec and return
-      Rcpp::NumericVector vec(newlen);
-      for (int i=0;i<newlen;i++)
-      {
-        vec[i] = myx[i];
-      }
-      return vec;
-    }
+
+/**
+ * Sort based (rather than Histogram based) method to clip outliers (A histogram equivalent has not been evaluated)
+ */
     Rcpp::NumericVector Adacs::Cadacs_magclip(Rcpp::NumericVector x, const int sigma, const int clipiters, const double sigmasel, const int estimate){
       const double_t* iiix=REAL(x);
       int nb = x.length();
@@ -923,6 +797,9 @@ double AdacsHistogram::quantile(double quantile, double offset) const {
     }
     
     //==================================================================================
+    /**
+     * Interpolate a 2D regular grid using akima spline interpolation
+     */
     void Adacs::interpolateAkimaGrid(Rcpp::NumericVector xseq,Rcpp::NumericVector yseq,Rcpp::NumericMatrix tempmat_sky,Rcpp::NumericMatrix output) {
       /*
       * An Matrix element is at (row,col)
@@ -975,6 +852,9 @@ double AdacsHistogram::quantile(double quantile, double offset) const {
         }
       }
     }
+/**
+ * Interpolate a 2D regular grid using bilinear interpolation
+ */
     void Adacs::interpolateLinearGrid(Rcpp::NumericVector xseq,Rcpp::NumericVector yseq,Rcpp::NumericMatrix tempmat_sky,Rcpp::NumericMatrix output) {
       /*
       * An Matrix element is at (row,col)
@@ -1036,23 +916,35 @@ double AdacsHistogram::quantile(double quantile, double offset) const {
     }
     
     //==================================================================================
+    /**
+     * C++ version of R quantile
+     */
     double_t Adacs::Cadacs_quantile(Rcpp::NumericVector x, double quantile, int nbins, double minv, double maxv) {
       AdacsHistogram histogram;
       histogram.accumulate(x, nbins, minv, maxv);
       return histogram.quantile(quantile);
     }
+/**
+ * C++ version of R quantile low variant
+ */
     double_t Adacs::Cadacs_quantileLO(Rcpp::NumericVector x, double quantile, const double offset, int nbins, double minv, double maxv) {
       // The population we want the quantile for is x-offset where x<offset
       AdacsHistogram histogram;
       histogram.accumulateLO(x, offset, nbins, minv, maxv);
       return histogram.quantile(quantile, offset);
     }
+/**
+ * C++ version of R quantile high variant
+ */
     double_t Adacs::Cadacs_quantileHI(Rcpp::NumericVector x, double quantile, const double offset, int nbins, double minv, double maxv) {
       // The population we want the quantile for is x-offset where x>offset
       AdacsHistogram histogram;
       histogram.accumulateHI(x, offset, nbins, minv, maxv);
       return histogram.quantile(quantile, offset);
     }
+/**
+ * C++ version of R stats::mean
+ */
     double_t Adacs::Cadacs_mean(Rcpp::NumericVector x) {
       const double_t* myx=REAL(x);
       int size = x.size();
@@ -1163,154 +1055,6 @@ double AdacsHistogram::quantile(double quantile, double offset) const {
         current_bin_lower += binwidth;
       }
       return mode;
-    }
-    void Adacs::adacsBothFromHistogram(Rcpp::NumericVector x, double quantile,Rcpp::NumericVector results) {
-      const double_t* iiix=REAL(x);
-      double_t* iresults=REAL(results);
-      int size = x.size();
-      std::vector<double_t> myx (iiix, iiix+size);
-      double min=std::numeric_limits<double>::max();
-      double max=std::numeric_limits<double>::min();
-      int non_null_sample_count=0;
-      for (int i=0;i<size;i++)
-      {
-        if (!std::isnan(myx[i])) {
-          non_null_sample_count++;
-          min = MIN(min,myx[i]);
-          max = MAX(max,myx[i]);
-        }
-      }
-      
-      // histogram
-      int levels = 16384*2;
-      std::vector<int> histogram;
-      histogram.resize(levels);
-      for (int i=0;i<levels;i++)
-      {
-        histogram[i] = 0;
-      }
-      double value_to_bin_index = (levels-1);
-      value_to_bin_index /= (max - min);
-      for (int i=0;i<size;i++)
-      {
-        if (!std::isnan(myx[i])) {
-          int index = (myx[i] - min)*value_to_bin_index;
-          histogram[index]++;
-        }
-      }
-      int count=0;
-      double median = min;
-      double binwidth = (max - min)/levels;
-      int target_count = non_null_sample_count*0.5;
-      for (int i=0;i<levels;i++) {
-        if (count>=target_count)
-        {
-          levels = i;
-          iresults[0] = median;
-          iresults[2] = binwidth;
-          break;
-        }
-        median += binwidth;
-        count += histogram[i];
-      }
-      
-      non_null_sample_count = count - histogram[levels];
-      count=0;
-      median = min;
-      target_count = non_null_sample_count*quantile;
-      for (int i=0;i<levels;i++) {
-        if (count>=target_count)
-        {
-          iresults[1] = median;
-          iresults[3] = binwidth;
-          break;
-        }
-        median += binwidth;
-        count += histogram[i];
-      }
-    }
-    void Adacs::adacsBothFromHistogramV2(Rcpp::NumericVector x, double quantile,Rcpp::NumericVector results) {
-      const double_t* iiix=REAL(x);
-      double_t* iresults=REAL(results);
-      int size = x.size();
-      std::vector<double_t> myx (iiix, iiix+size);
-      double min=std::numeric_limits<double>::max();
-      double max=std::numeric_limits<double>::min();
-      int non_null_sample_count=0;
-      for (int i=0;i<size;i++)
-      {
-        if (!std::isnan(myx[i])) {
-          non_null_sample_count++;
-          min = MIN(min,myx[i]);
-          max = MAX(max,myx[i]);
-        }
-      }
-      
-      // histogram
-      int levels = 16384;
-      std::vector<int> histogram;
-      histogram.resize(levels);
-      for (int i=0;i<levels;i++)
-      {
-        histogram[i] = 0;
-      }
-      double value_to_bin_index = (levels-1);
-      value_to_bin_index /= (max - min);
-      for (int i=0;i<size;i++)
-      {
-        if (!std::isnan(myx[i])) {
-          int index = (myx[i] - min)*value_to_bin_index;
-          histogram[index]++;
-        }
-      }
-      int count=0;
-      double median = min;
-      double binwidth = (max - min)/levels;
-      int target_count = non_null_sample_count*0.5;
-      for (int i=0;i<levels;i++) {
-        if (count>=target_count)
-        {
-          iresults[0] = median;
-          iresults[2] = binwidth;
-          break;
-        }
-        median += binwidth;
-        count += histogram[i];
-      }
-      
-      
-      non_null_sample_count = 0;
-      for (int i=0;i<levels;i++)
-      {
-        histogram[i] = 0;
-      }
-      max = median;
-      value_to_bin_index = (levels-1);
-      value_to_bin_index /= (max - min);
-      for (int i=0;i<size;i++)
-      {
-        if (!std::isnan(myx[i])) {
-          if (myx[i]<median) {
-            non_null_sample_count++;
-            int index = (myx[i] - min)*value_to_bin_index;
-            histogram[index]++;
-          }
-        }
-      }
-      count=0;
-      median = min;
-      binwidth = (max - min)/levels;
-      target_count = non_null_sample_count*quantile;
-      for (int i=0;i<levels;i++) {
-        if (count>=target_count)
-        {
-          iresults[1] = median-iresults[0];
-          iresults[3] = binwidth;
-          break;
-        }
-        median += binwidth;
-        count += histogram[i];
-      }
     }
     Rcpp::NumericVector Adacs::Cadacs_SkyEstLoc(Rcpp::NumericMatrix image,
                                                 BitMatrix & bobjects, BitMatrix & bmask, 
@@ -1578,27 +1322,40 @@ double AdacsHistogram::quantile(double quantile, double offset) const {
         }
     }
     
-// dilate
+// dilate (Adapted from EBImage (see https://github.com/aoles/EBImage))
 //===========
 /* use custom templates rather than std::numeric_limits to avoid dependency on C++11 due to lowest() */
+
+typedef struct {
+  int x, y;
+} PointXY;
+    
+#define INDEX_FROM_XY(x, y, xsize) ((x) + (y) * (xsize))
+#define POINT_FROM_INDEX(pt, index, xsize) pt.x = index % xsize; pt.y = index / xsize;
+    
+#define DILATE 0
+    
+#define BUF_LENGTH 10
+    
+#define CHECK_BUFFER(pointer, occupied, buffer, type)     \
+    if (occupied == buffer) {                             \
+      buffer += BUF_LENGTH;                               \
+      pointer = R_Realloc(pointer, buffer, type);         \
+    }
 #define MIN_VALUE true
 #define MAX_VALUE false
 
-template <typename type> const type limits(const bool);
+const int limits(const bool);
 
-template <> const int limits(const bool min) {
+const int limits(const bool min) {
   return min ? INT_MIN : INT_MAX;
 }
 
-template <> const double limits(const bool min) {
-  return min ? -DBL_MAX : DBL_MAX;
-}
+chordSet buildChordSet(int *, PointXY);
+int*** allocate_lookup_table(chordSet *, int);
+void free_lookup_table(int ***, chordSet *);
 
-template <typename type> chordSet buildChordSet(type *, PointXY);
-template <typename type> type*** allocate_lookup_table(chordSet *, int);
-template <typename type> void free_lookup_table(type ***, chordSet *);
-
-template <typename type> chordSet buildChordSet(type * kern, PointXY ksize) {
+chordSet buildChordSet(int * kern, PointXY ksize) {
   PointXY korigin;
   korigin.x = (int) ceil((float)ksize.x / 2) - 1; // -1 due to 0-based indices
   korigin.y = (int) ceil((float)ksize.y / 2) - 1;
@@ -1609,10 +1366,10 @@ template <typename type> chordSet buildChordSet(type * kern, PointXY ksize) {
   set.C = R_Calloc(BUF_LENGTH, chord);
   CBufLength = BUF_LENGTH;
   for (int i = 0; i < ksize.y; ++i) {
-    type prevValue = 0;
+    int prevValue = 0;
     int beginChord = 0;
     for (int j = 0; j <= ksize.x; ++j) {
-      type value = (j < ksize.x ? kern[INDEX_FROM_XY(j, i, ksize.x)] : 0);
+      int value = (j < ksize.x ? kern[INDEX_FROM_XY(j, i, ksize.x)] : 0);
       if (value == 0 && prevValue != 0) {
         chord c;
         c.yOffset = i - korigin.y;
@@ -1646,31 +1403,31 @@ template <typename type> chordSet buildChordSet(type * kern, PointXY ksize) {
   return set;
 }
 
-template <typename type> type*** allocate_lookup_table(chordSet *set, int width) {
-  type ***T;
-  T = R_Calloc(set->maxYoffset - set->minYoffset + 1, type**); // + 1 for offset of 0
+int*** allocate_lookup_table(chordSet *set, int width) {
+  int ***T;
+  T = R_Calloc(set->maxYoffset - set->minYoffset + 1, int**); // + 1 for offset of 0
   T = T - set->minYoffset;
   
   int Txlength = width - set->minXoffset + set->maxXoffset + 1;
   for (int i = set->minYoffset; i <= set->maxYoffset; ++i) {
-    T[i] = R_Calloc(set->maxN + 1, type*);
+    T[i] = R_Calloc(set->maxN + 1, int*);
     for (int j = 0, d = 1; j <= set->maxN; ++j, d *= 2) {
-      T[i][j] = R_Calloc(Txlength - d, type);
+      T[i][j] = R_Calloc(Txlength - d, int);
       T[i][j] = T[i][j] - set->minXoffset;
     }
   }
   return T;
 }
 
-template <typename type> void free_lookup_table(type ***T, chordSet *set) {
+void free_lookup_table(int ***T, chordSet *set) {
   for (int i = set->minYoffset; i <= set->maxYoffset; ++i) {
     for (int j = 0; j < set->maxN; j++) {
-      type *first = T[i][j] + set->minXoffset;
+      int *first = T[i][j] + set->minXoffset;
       R_Free(first);
     }
     R_Free(T[i]);
   }
-  type ***first = T + set->minYoffset;
+  int ***first = T + set->minYoffset;
   R_Free(first);
 }
 
@@ -1678,7 +1435,7 @@ void BitMatrix::compute_lookup_table_for_line_dilate(int ***T, int yOff, int lin
   PointXY size;
   size.x = nx;
   size.y = ny;
-  const int MIN_VAL = limits<int>(MIN_VALUE);
+  const int MIN_VAL = limits(MIN_VALUE);
   
   int y = line + yOff;
   
@@ -1722,6 +1479,9 @@ void BitMatrix::dilate_line(int ***T, BitMatrix & destination, chordSet *set, in
   }
 }
 
+/**
+ * The entry point for the BitMatrix version of EBImage::dilate
+ */
 void BitMatrix::dilate (SEXP kernel) {
   
   PointXY size;
@@ -1732,8 +1492,8 @@ void BitMatrix::dilate (SEXP kernel) {
   ksize.x = INTEGER ( GET_DIM(kernel) )[0];
   ksize.y = INTEGER ( GET_DIM(kernel) )[1];
   
-  chordSet set=buildChordSet<int>(INTEGER(kernel), ksize);
-  int ***T = allocate_lookup_table<int>(&set, size.x);
+  chordSet set=buildChordSet(INTEGER(kernel), ksize);
+  int ***T = allocate_lookup_table(&set, size.x);
   
   //_dilated(size.x, size.y , nz, &set, T);
   BitMatrix destination;
@@ -1753,7 +1513,7 @@ void BitMatrix::dilate (SEXP kernel) {
   }
   *this = destination;
   
-  free_lookup_table<int>(T, &set);
+  free_lookup_table(T, &set);
   R_Free(set.C);
 }
 

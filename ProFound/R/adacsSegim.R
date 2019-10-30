@@ -185,7 +185,7 @@ adacs_MakeSegimDilateBitMatrix=function(bobjects=bobjects, bmask=NULL, size=9, s
   }
   
   if(expand[1]=='all'){
-    bobjects$dilate(kern)
+    bobjects$dilatesparse(kern)
   }else{
     stop('expand must be \'all\' for MakeSegimDilateBitMatrix', call. = FALSE)
   }

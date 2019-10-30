@@ -50,6 +50,7 @@ public:
     void clearValue(IntegerMatrix x, int value);
     void copyTo(IntegerMatrix x);
     void dilate(SEXP kernel);
+    void dilatesparse(IntegerMatrix kernel);
 
     std::vector<int> trues(int32_t offset=0) const; // 0 relative
     std::vector<int> _trues() const;                // 1 relative
@@ -64,7 +65,15 @@ private:
   uint32_t _n32bitwords;
   std::vector<uint32_t> _data;
 };
-
+/**
+ * Histogram accumulation and query used for adacs_ProFound options:
+ * skytype: adacs_median, adacs_mode
+ * skyRMStype: adacs_quanboth, adacs_quanlo, adacs_quanhi
+ * Equivalent "sort" based options:
+ * skytype: median, mode
+ * skyRMStype: quanboth, quanlo, quanhi
+ * Histogram methods are generally faster than the "sort" methods but do not give identical results
+ */
 class AdacsHistogram {
 public:
   AdacsHistogram();
@@ -142,34 +151,23 @@ private:
   int ncoeffs;
   std::vector<Coeff> coeffs;
 };
+
+/**
+ * Adacs class C++ optimised substitutions of ProFound functions.  
+ */
 class Adacs {
 public:
     Adacs() {}
-    void callwitharg(int nrows,int ncols, BitMatrix & mask);
-  void subset_cpp_inplace(
-      Rcpp::NumericMatrix image = 0, const int scol=1, const int ecol=1, const int srow=1, const int erow=1, const int coffset=0, const int roffset=0, Rcpp::NumericMatrix oimage = 0);
-  void subset_cpp_inplaceI(
-      Rcpp::IntegerMatrix image = 0, const int scol=1, const int ecol=1, const int srow=1, const int erow=1, const int coffset=0, const int roffset=0, Rcpp::LogicalMatrix oimage = 0);
-#define MAX(a,b) (a)>(b)?(a):(b)
-#define MIN(a,b) (a)<(b)?(a):(b)
-#define ABS(a) (a)<0?(-a):(a)
   Rcpp::NumericVector Cadacs_FindSkyCellValues(Rcpp::NumericMatrix image,
                                                BitMatrix & bobjects, BitMatrix & bmask,
                                                const double loc1, const double loc2,
                                                const double box1, const double box2,
                                                const double boxadd1, const double boxadd2,
                                                const int skypixmin, const int boxiters);
-  Rcpp::IntegerVector Cadacs_FindSkyCellValuesBoxC(Rcpp::NumericMatrix image, Rcpp::Nullable<Rcpp::IntegerMatrix> objects, Rcpp::Nullable<Rcpp::IntegerMatrix> mask,
-                                                   const double loc1, const double loc2,
-                                                   const double box1, const double box2,
-                                                   const double boxadd1, const double boxadd2,
-                                                   const int skypixmin, const int boxiters);
-  Rcpp::NumericVector adacsmagclip(Rcpp::NumericMatrix x, const int sigma, const int clipiters, const double sigmasel, const int estimate);
   Rcpp::NumericVector Cadacs_magclip(Rcpp::NumericVector x, const int sigma, const int clipiters, const double sigmasel, const int estimate);
   
   //==================================================================================
   void interpolateAkimaGrid(Rcpp::NumericVector xseq,Rcpp::NumericVector yseq,Rcpp::NumericMatrix tempmat_sky,Rcpp::NumericMatrix output);
-  
   void interpolateLinearGrid(Rcpp::NumericVector xseq,Rcpp::NumericVector yseq,Rcpp::NumericMatrix tempmat_sky,Rcpp::NumericMatrix output);
   
   //==================================================================================
@@ -181,8 +179,6 @@ public:
   double_t Cadacs_sample_variance(Rcpp::NumericVector x, const double offset);
   double_t Cadacs_median(Rcpp::NumericVector x);
   double_t Cadacs_mode(Rcpp::NumericVector x);
-  void adacsBothFromHistogram(Rcpp::NumericVector x, double quantile,Rcpp::NumericVector results);
-  void adacsBothFromHistogramV2(Rcpp::NumericVector x, double quantile,Rcpp::NumericVector results);
   Rcpp::NumericVector Cadacs_SkyEstLoc(Rcpp::NumericMatrix image,
                                        BitMatrix & bobjects, BitMatrix & bmask,
                                        const double loc1, const double loc2,
@@ -201,15 +197,20 @@ public:
                           Rcpp::NumericMatrix sky, Rcpp::NumericMatrix skyRMS
   );
 };
+
+/**
+ * This macro determines which C++ classes and methods exposed to R using the "object=new(class...)" constructor and "object$method" call styles.
+ */
 RCPP_MODULE(adacs){
     using namespace Rcpp ;
 
     class_<BitMatrix>("BitMatrix")
-    // expose the default constructor
+    // expose BitMatrix constructors to R
     .constructor()
     .constructor<int, int>()
     .constructor<IntegerMatrix>()
-
+    
+    // expose BitMatrix methods to R
     .method("fill", &BitMatrix::fill     , "set or clear all bits")
     .method("settrue", &BitMatrix::_settrue     , "set the bit.  1 relative")
     .method("setfalse", &BitMatrix::_setfalse     , "clear the bit.  1 relative")
@@ -225,17 +226,21 @@ RCPP_MODULE(adacs){
     .const_method("ncol", &BitMatrix::ncol, "return matrix ncols")
     .const_method("isnull", &BitMatrix::isnull, "is this object null or not null")
     .method("setnull", &BitMatrix::setnull, "set this object as null or not null")
-    .method("dilate", &BitMatrix::dilate, "apply the morphological dilate operation")
+    .method("dilate", &BitMatrix::dilate, "apply the morphological dilate operation.  Reworked EMImage version")
+    .method("dilatesparse", &BitMatrix::dilatesparse, "apply the morphological dilate operation.  Aaron version")
     ;
     
+    // expose AdacsHistogram to R (not currently used from R)
     class_<AdacsHistogram>("AdacsHistogram")
     .constructor()
     .method("accumulate", &AdacsHistogram::accumulate, "Acquire the histogram")
     .const_method("quantile", &AdacsHistogram::quantile, "Return the value of the given quantile")
     ;
 
+    // expose Adacs constructor to R
     class_<Adacs>("Adacs")
     .constructor()
+    // expose required methods to R
     .method("Cadacs_MakeSkyGrid", &Adacs::Cadacs_MakeSkyGrid, "entry point for adacs_MakeSkyGrid")
     ;
 }

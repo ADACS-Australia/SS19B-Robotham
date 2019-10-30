@@ -8,6 +8,7 @@ run_profound() {
         echo -n `grep "real" tmp1.txt` | sed -e"s|  | |g" | cut  -f 1 -d" " > tmpb.txt
         echo -n `grep "maximum resident set size" tmp1.txt`| sed -e"s|maximum resident set size||" > tmpc.txt
         echo `cut -c4-100 tmpa.txt`,`cat tmpb.txt`,`cat tmpc.txt`
+        rm -f tmp*.txt
 
 }
 
@@ -32,7 +33,7 @@ what=$1
 # scale=2 is 712x712
 # scale=3 is 1424x712
 # and so forth...
-export profileout=28oct-merge-$what.csv
+export profileout=30oct-dilatesparse-$what.csv
 rm -f $profileout
 start_experiment "Profiling image size v/s time for box = 20" >> $profileout
 for image_scale_steps in 0 2 4 6 8; do
