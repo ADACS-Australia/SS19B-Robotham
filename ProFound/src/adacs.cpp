@@ -712,13 +712,10 @@ double AdacsHistogram::quantile(double quantile, double offset) const {
         x3 = xorig[i];
         y3 = yorig[i];
         
-        if (i != npts - 1)
-        {
-          x4 = xorig[i + 1];
-          y4 = yorig[i + 1];
-          dx = x4 - x3;
-          dy = y4 - y3;
-        }
+        x4 = xorig[i + 1];
+        y4 = yorig[i + 1];
+        dx = x4 - x3;
+        dy = y4 - y3;
         
         // check for boundary conditions
         if (i == 0)
