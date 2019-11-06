@@ -1,0 +1,2 @@
+# Copy this file to Makevars if on mac and using clang++
+PKG_CXXFLAGS = -Wsign-compare -Wuninitialized -Wunused-variable -Wunused-private-field -Wunused-member-function -Wc++11-compat-pedantic
