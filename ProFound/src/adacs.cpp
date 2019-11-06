@@ -72,8 +72,8 @@ Rcpp::Function quantile=rstats["quantile"];
       _npts = _nrows*_ncols;
       _n32bitwords = 1 + (_npts >> 5);
       _data.resize(_n32bitwords);
-      for (int j=0;j<_ncols;j++) {
-        for (int i=0;i<_nrows;i++) {
+      for (uint j=0;j<_ncols;j++) {
+        for (uint i=0;i<_nrows;i++) {
           if (mask(i,j)) {
             settrue(i,j);
           } else {
@@ -83,8 +83,8 @@ Rcpp::Function quantile=rstats["quantile"];
       }
     }
     void BitMatrix::fill(bool yesno) {
-        for (int i=0;i<_nrows;i++) {
-            for (int j=0;j<_ncols;j++) {
+        for (uint i=0;i<_nrows;i++) {
+            for (uint j=0;j<_ncols;j++) {
                 if (yesno) {
                     settrue(i,j);
                 } else {
@@ -215,8 +215,8 @@ Rcpp::Function quantile=rstats["quantile"];
     }
 
     void BitMatrix::copyTo(IntegerMatrix mask) {
-      for (int j=0;j<_ncols;j++) {
-        for (int i=0;i<_nrows;i++) {
+      for (uint j=0;j<_ncols;j++) {
+        for (uint i=0;i<_nrows;i++) {
           if (istrue(i,j)) {
             mask(i,j) = 1;
           } else {
@@ -247,16 +247,16 @@ Rcpp::Function quantile=rstats["quantile"];
           }
         }
       }
-      int length=krow.size();
+      uint length=krow.size();
       
       // apply the dilate operation
-      for (int i=0; i<_ncols; i++) {
-        for (int j=0; j<_nrows; j++) {
+      for (uint i=0; i<_ncols; i++) {
+        for (uint j=0; j<_nrows; j++) {
           if (istrue(j,i)) {
-            for (int k=0; k<length; k++) {
+            for (uint k=0; k<length; k++) {
               int ik=i+kcol[k];
               int jk=j+krow[k];
-              if (ik<0 || ik>=_ncols || jk<0 || jk>=_nrows) continue; // outside
+              if (ik<0 || ik>=(int)_ncols || jk<0 || jk>=(int)_nrows) continue; // outside
               destination.settrue(jk,ik);
               }
             }
@@ -278,8 +278,8 @@ Rcpp::Function quantile=rstats["quantile"];
         std::vector<int> out;
         int count=0;
         int index=offset;
-        for (int j = 0; j < _ncols; j++) {
-            for (int i = 0; i < _nrows; i++) {
+        for (uint j = 0; j < _ncols; j++) {
+            for (uint i = 0; i < _nrows; i++) {
                 if (istrue(i,j)) {
                     out.push_back(index);
                     count++;
