@@ -45,6 +45,7 @@ Aaron Robotham
 \code{\link{profoundMakeSegim}}, \code{\link{profoundMakeSegimExpand}}
 }
 \examples{
+initialiseGlobals(TRUE)
 image=readFITS(system.file("extdata", 'VIKING/mystery_VIKING_Z.fits',
 package="ProFound"))$imDat
 magimage(image)

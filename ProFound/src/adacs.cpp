@@ -49,8 +49,6 @@
  * These two static instantiations pull in the R quantile method so it can be called from C++
  * See adacs_RLO, adacs_RHI, and adacs_RBOTH
  */
-Rcpp::Environment rstats("package:stats");
-Rcpp::Function quantile=rstats["quantile"];
 
 #include "Rdefines.h"
 
@@ -1057,7 +1055,8 @@ double AdacsHistogram::quantile(double quantile, double offset) const {
                                                 BitMatrix & bobjects, BitMatrix & bmask, 
                                                 const double loc1, const double loc2, const double box1, const double box2, 
                                                 const double boxadd1, const double boxadd2, 
-                                                const int skypixmin, const int boxiters, const int doclip, const int skytype, const int skyRMStype, const double sigmasel
+                                                const int skypixmin, const int boxiters, const int doclip, const int skytype, const int skyRMStype, const double sigmasel,
+                                                Rcpp::Function Fquantile
     ) {
       Rcpp::NumericVector select = Cadacs_FindSkyCellValues(image, bobjects, bmask, loc1, loc2, box1, box2, boxadd1, boxadd2, skypixmin, boxiters);
       Rcpp::NumericVector clip;
@@ -1106,7 +1105,7 @@ double AdacsHistogram::quantile(double quantile, double offset) const {
           clip[i] = R_NaN;
         }
       }
-        skyRMSloc = fabs(REAL(quantile(clip, R::pnorm(-sigmasel, 0.0, 1.0, 1, 0)*2, true))[0])/sigmasel;
+        skyRMSloc = fabs(REAL(Fquantile(clip, R::pnorm(-sigmasel, 0.0, 1.0, 1, 0)*2, true))[0])/sigmasel;
       }
         break;
       case adacs_HI:
@@ -1121,7 +1120,7 @@ double AdacsHistogram::quantile(double quantile, double offset) const {
           clip[i] = R_NaN;
         }
       }
-        skyRMSloc = fabs(REAL(quantile(clip, (R::pnorm(sigmasel, 0.0, 1.0, 1, 0)-0.5)*2, true))[0])/sigmasel;
+        skyRMSloc = fabs(REAL(Fquantile(clip, (R::pnorm(sigmasel, 0.0, 1.0, 1, 0)-0.5)*2, true))[0])/sigmasel;
       }
         break;
       case adacs_BOTH:
@@ -1153,8 +1152,8 @@ double AdacsHistogram::quantile(double quantile, double offset) const {
           }
         }
         
-        double lo = fabs(REAL(quantile(templo, R::pnorm(-sigmasel, 0.0, 1.0, 1, 0)*2, true))[0])/sigmasel;
-        double hi = fabs(REAL(quantile(temphi, (R::pnorm(sigmasel, 0.0, 1.0, 1, 0)-0.5)*2, true))[0])/sigmasel;
+        double lo = fabs(REAL(Fquantile(templo, R::pnorm(-sigmasel, 0.0, 1.0, 1, 0)*2, true))[0])/sigmasel;
+        double hi = fabs(REAL(Fquantile(temphi, (R::pnorm(sigmasel, 0.0, 1.0, 1, 0)-0.5)*2, true))[0])/sigmasel;
         skyRMSloc = (lo+hi)/2;
       }
         break;
@@ -1183,7 +1182,8 @@ double AdacsHistogram::quantile(double quantile, double offset) const {
                             const int boxadd1, const int boxadd2,
                             const int type, const int skypixmin, const int boxiters,
                             const int doclip, const int skytype, const int skyRMStype, const double sigmasel,
-                            Rcpp::NumericMatrix sky, Rcpp::NumericMatrix skyRMS
+                            Rcpp::NumericMatrix sky, Rcpp::NumericMatrix skyRMS,
+                            Rcpp::Function Fquantile
     ) {
       // box MUST NOT be larger than the input image
       double box[2] = {(double)box1, (double)box2};
@@ -1245,7 +1245,7 @@ double AdacsHistogram::quantile(double quantile, double offset) const {
                                                                box1, box2,
                                                                boxadd1, boxadd2,
                                                                skypixmin, boxiters,
-                                                               doclip, skytype, skyRMStype, sigmasel);
+                                                               doclip, skytype, skyRMStype, sigmasel, Fquantile);
           if (std::isnan(z_tile_centre[0]) || std::isnan(z_tile_centre[1])) {
             hasNaNs = true;
           }

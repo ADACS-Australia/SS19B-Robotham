@@ -24,7 +24,7 @@ adacs_MakeSkyGrid=function(image=NULL, bobjects=NULL, bmask=NULL, box=c(100,100)
                            boxadd[1], boxadd[2],
                            enumForKeyword(type), skypixmin, boxiters,
                            doclip, enumForKeyword(skytype), enumForKeyword(skyRMStype), sigmasel,
-                           temp_bi_sky, temp_bi_skyRMS)
+                           temp_bi_sky, temp_bi_skyRMS, quantile)
   
   invisible(list(sky=temp_bi_sky, skyRMS=temp_bi_skyRMS))
 }

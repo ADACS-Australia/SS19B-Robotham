@@ -185,7 +185,8 @@ public:
                                        const double box1, const double box2,
                                        const double boxadd1, const double boxadd2,
                                        const int skypixmin, const int boxiters,
-                                       const int doclip, const int skytype, const int skyRMStype, const double sigmasel
+                                       const int doclip, const int skytype, const int skyRMStype, const double sigmasel,
+                                       Rcpp::Function Fquantile
   );
   void Cadacs_MakeSkyGrid(Rcpp::NumericMatrix image,
                           BitMatrix & bobjects, BitMatrix & bmask,
@@ -194,7 +195,8 @@ public:
                           const int boxadd1, const int boxadd2,
                           const int type, const int skypixmin, const int boxiters,
                           const int doclip, const int skytype, const int skyRMStype, const double sigmasel,
-                          Rcpp::NumericMatrix sky, Rcpp::NumericMatrix skyRMS
+                          Rcpp::NumericMatrix sky, Rcpp::NumericMatrix skyRMS,
+                          Rcpp::Function Fquantile
   );
 };
 
