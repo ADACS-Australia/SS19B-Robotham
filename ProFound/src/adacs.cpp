@@ -1404,7 +1404,6 @@ Rcpp::NumericVector Adacs::Cadacs_FindSkyCellValues(Rcpp::NumericMatrix image,
                                    Rcpp::Function Fquantile
     ) {
       // box MUST NOT be larger than the input image
-      Rcpp::Rcout << "ENTER MAKESKYGRID\n";
       double box[2] = {(double)box1, (double)box2};
       if(box[0]>image.nrow())
         box[0]=image.nrow();
@@ -1477,12 +1476,20 @@ Rcpp::NumericVector Adacs::Cadacs_FindSkyCellValues(Rcpp::NumericMatrix image,
         // Replace any NaN's with reasonable substitute
         // initialise the pad area before getting the medians
         for (int i=0; i<tile_nrows; i++) {
+          // sky
           z_sky_centre(i,0) = R_NaN;
           z_sky_centre(i,tile_ncols-1) = R_NaN;
+          // skyRMS
+          z_skyRMS_centre(i,0) = R_NaN;
+          z_skyRMS_centre(i,tile_ncols-1) = R_NaN;
         }
         for (int i=0; i<tile_ncols; i++) {
+          // sky
           z_sky_centre(0, i) = R_NaN;
           z_sky_centre(tile_nrows-1, i) = R_NaN;
+          // skyRMS
+          z_skyRMS_centre(0, i) = R_NaN;
+          z_skyRMS_centre(tile_nrows-1, i) = R_NaN;
         }
         double medianSkyCentre=Cadacs_median(z_sky_centre);
         double medianSkyRMSCentre=Cadacs_median(z_skyRMS_centre);
@@ -1504,12 +1511,20 @@ Rcpp::NumericVector Adacs::Cadacs_FindSkyCellValues(Rcpp::NumericMatrix image,
       int xend=MAX(tile_nrows-3,1);
       int yend=MAX(tile_ncols-3,1);
       for (int i=0; i<tile_nrows; i++) {
+        // sky
         z_sky_centre(i,0) = z_sky_centre(i, 1)*2 - z_sky_centre(i, ystart);
         z_sky_centre(i,tile_ncols-1) = z_sky_centre(i, tile_ncols-2)*2 - z_sky_centre(i, yend);
+        // skyRMS
+        z_skyRMS_centre(i,0) = z_skyRMS_centre(i, 1)*2 - z_skyRMS_centre(i, ystart);
+        z_skyRMS_centre(i,tile_ncols-1) = z_skyRMS_centre(i, tile_ncols-2)*2 - z_skyRMS_centre(i, yend);
       }
       for (int i=0; i<tile_ncols; i++) {
+        // sky
         z_sky_centre(0, i) = z_sky_centre(1, i)*2 - z_sky_centre(xstart, i);
         z_sky_centre(tile_nrows-1, i) = z_sky_centre(tile_nrows-2, i)*2 - z_sky_centre(xend, i);
+        // skyRMS
+        z_skyRMS_centre(0, i) = z_skyRMS_centre(1, i)*2 - z_skyRMS_centre(xstart, i);
+        z_skyRMS_centre(tile_nrows-1, i) = z_skyRMS_centre(tile_nrows-2, i)*2 - z_skyRMS_centre(xend, i);
       }
       
       // Now interpolate for each image cell
