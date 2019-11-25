@@ -1,6 +1,7 @@
 # Entry point to the ADACS optimised equivalent to profoundProFound
 # Note that this function returns BitMatrix results (bobjects and bmask) instead of IntegerMatrix results (objects, mask)
 # If the original profoundProFound function returns are needed then a "wrapper" function should be used (see function adacs_ProFoundWrapper as to how this may look)
+# for illustrative purposes
 
 adacs_ProFoundBitMatrix=function(image=NULL, segim=NULL, bobjects=NULL, bmask=NULL, skycut=1, pixcut=3, tolerance=4, ext=2, reltol=0, cliptol=Inf, sigma=1, smooth=TRUE, SBlim=NULL, SBdilate=NULL, SBN100=100, size=5, shape='disc', iters=6,
                                       threshold=1.05, magzero=0, gain=NULL, pixscale=1, sky=NULL, skyRMS=NULL, redosegim=FALSE, redosky=TRUE, redoskysize=21, box=c(101,101), grid=box,
@@ -458,19 +459,21 @@ adacs_ProFoundBitMatrix=function(image=NULL, segim=NULL, bobjects=NULL, bmask=NU
   class(output)='profound'
   invisible(output)
 }
-# Integer version
+# Integer version (for illustrative purposes)
 adacs_ProFound=function(image=NULL, segim=NULL, objects=NULL, mask=NULL, skycut=1, pixcut=3, tolerance=4, ext=2, reltol=0, cliptol=Inf, sigma=1, smooth=TRUE, SBlim=NULL, SBdilate=NULL, SBN100=100, size=5, shape='disc', iters=6,
                                  threshold=1.05, magzero=0, gain=NULL, pixscale=1, sky=NULL, skyRMS=NULL, redosegim=FALSE, redosky=TRUE, redoskysize=21, box=c(101,101), grid=box,
                                  type='bicubic', skytype='median', skyRMStype='quanlo', roughpedestal=FALSE, sigmasel=1, skypixmin=prod(box)/2, boxadd=box/2, boxiters=0, iterskyloc=TRUE, deblend=FALSE, df=3, radtrunc=2, iterative=FALSE, doclip=TRUE,
                                  shiftloc = FALSE, paddim = TRUE, header=NULL, verbose=FALSE, plot=FALSE, stats=TRUE, rotstats=FALSE, boundstats=FALSE, nearstats=boundstats, groupstats=boundstats, group=NULL, groupby='segim_orig',
                                  offset=1, haralickstats=FALSE, sortcol="segID", decreasing=FALSE, lowmemory=FALSE, keepim=TRUE, watershed='ProFound', pixelcov=FALSE, deblendtype='fit', psf=NULL, fluxweight='sum',
                                  convtype = 'brute', convmode = 'extended', fluxtype='Raw', app_diam=1, Ndeblendlim=Inf, ...){
-  initialiseGlobals(doclip)
   if(verbose){message('Running ProFound:')}
   timestart=proc.time()[3]
   
   call=match.call()
   
+  
+  # Start ADACS setups ============================================================================
+  initialiseGlobals(doclip)
   # check some args passed in
   if (is.null(enumForInterpolationType(type))) {
     stop('type must be one of: bilinear,  bicubic!')
@@ -509,6 +512,12 @@ adacs_ProFound=function(image=NULL, segim=NULL, objects=NULL, mask=NULL, skycut=
   if (box[2]%%2 == 1) {
     boxadd = c(boxadd[1], boxadd[2]+1)
   }
+  
+  # Create scratch matrices
+  scratch <- list(scratchSKY=matrix(0.0,dim(image)[1],dim(image)[2]),
+                  scratchSKYRMS=matrix(0.0,dim(image)[1],dim(image)[2]))
+  
+  # End ADACS setups ============================================================================
   
   fluxtype=tolower(fluxtype)
   
@@ -608,10 +617,6 @@ adacs_ProFound=function(image=NULL, segim=NULL, objects=NULL, mask=NULL, skycut=
     objects=objects*1L #Looks silly, but this ensures a logical mask becomes integer.
   }
   
-  # Create scratch matrices
-  scratch <- list(scratchSKY=matrix(0.0,dim(image)[1],dim(image)[2]),
-                  scratchSKYRMS=matrix(0.0,dim(image)[1],dim(image)[2]))
-  
   #Check for user provided sky, and compute if missing:
   
   hassky=!is.null(sky)
@@ -619,7 +624,12 @@ adacs_ProFound=function(image=NULL, segim=NULL, objects=NULL, mask=NULL, skycut=
   
   if((hassky==FALSE | hasskyRMS==FALSE) & is.null(segim)){
     if(verbose){message(paste('Making initial sky map -',round(proc.time()[3]-timestart,3),'sec'))}
+    # ADACS version of MakeSkyGrid ============================================================================
+    # 1.  pass scratch=scratch
+    # 2.  Remove reference to shiftloc and paddim
+    # 3.  repeat these small code changes two more times below
     roughsky=adacs_MakeSkyGrid(image=image, objects=objects, mask=mask, box=box, grid=grid, type=type, skytype=skytype, skyRMStype=skyRMStype, sigmasel=sigmasel, skypixmin=skypixmin, boxadd=boxadd, boxiters=0, doclip=doclip, scratch=scratch)
+    # =========================================================================================================
     if(roughpedestal){
       roughsky$sky=median(roughsky$sky,na.rm=TRUE)
       roughsky$skyRMS=median(roughsky$skyRMS,na.rm=TRUE)
