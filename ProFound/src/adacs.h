@@ -159,6 +159,12 @@ class Adacs {
 public:
     Adacs() {}
   Rcpp::NumericVector Cadacs_FindSkyCellValues(Rcpp::NumericMatrix image,
+                                               Rcpp::Nullable<Rcpp::IntegerMatrix> objects, Rcpp::Nullable<Rcpp::IntegerMatrix> mask,
+                                                        const double loc1, const double loc2,
+                                                        const double box1, const double box2,
+                                                        const double boxadd1, const double boxadd2,
+                                                        const int skypixmin, const int boxiters);
+  Rcpp::NumericVector Cadacs_FindSkyCellValuesBitMatrix(Rcpp::NumericMatrix image,
                                                BitMatrix & bobjects, BitMatrix & bmask,
                                                const double loc1, const double loc2,
                                                const double box1, const double box2,
@@ -179,7 +185,17 @@ public:
   double_t Cadacs_sample_variance(Rcpp::NumericVector x, const double offset);
   double_t Cadacs_median(Rcpp::NumericVector x);
   double_t Cadacs_mode(Rcpp::NumericVector x);
+  //
   Rcpp::NumericVector Cadacs_SkyEstLoc(Rcpp::NumericMatrix image,
+                                       Rcpp::Nullable<Rcpp::IntegerMatrix> objects, Rcpp::Nullable<Rcpp::IntegerMatrix> mask,
+                                                const double loc1, const double loc2,
+                                                const double box1, const double box2,
+                                                const double boxadd1, const double boxadd2,
+                                                const int skypixmin, const int boxiters,
+                                                const int doclip, const int skytype, const int skyRMStype, const double sigmasel,
+                                                Rcpp::Function Fquantile
+  );
+  Rcpp::NumericVector Cadacs_SkyEstLocBitMatrix(Rcpp::NumericMatrix image,
                                        BitMatrix & bobjects, BitMatrix & bmask,
                                        const double loc1, const double loc2,
                                        const double box1, const double box2,
@@ -188,8 +204,9 @@ public:
                                        const int doclip, const int skytype, const int skyRMStype, const double sigmasel,
                                        Rcpp::Function Fquantile
   );
+  //
   void Cadacs_MakeSkyGrid(Rcpp::NumericMatrix image,
-                          BitMatrix & bobjects, BitMatrix & bmask,
+                          Rcpp::Nullable<Rcpp::IntegerMatrix> objects, Rcpp::Nullable<Rcpp::IntegerMatrix> mask,
                           const int box1, const int box2,
                           const int grid1, const int grid2,
                           const int boxadd1, const int boxadd2,
@@ -198,6 +215,17 @@ public:
                           Rcpp::NumericMatrix sky, Rcpp::NumericMatrix skyRMS,
                           Rcpp::Function Fquantile
   );
+  void Cadacs_MakeSkyGridBitMatrix(Rcpp::NumericMatrix image,
+                                   BitMatrix & bobjects, BitMatrix & bmask,
+                                   const int box1, const int box2,
+                                   const int grid1, const int grid2,
+                                   const int boxadd1, const int boxadd2,
+                                   const int type, const int skypixmin, const int boxiters,
+                                   const int doclip, const int skytype, const int skyRMStype, const double sigmasel,
+                                   Rcpp::NumericMatrix sky, Rcpp::NumericMatrix skyRMS,
+                                   Rcpp::Function Fquantile
+  );
+  //
 };
 
 /**
@@ -244,6 +272,7 @@ RCPP_MODULE(adacs){
     .constructor()
     // expose required methods to R
     .method("Cadacs_MakeSkyGrid", &Adacs::Cadacs_MakeSkyGrid, "entry point for adacs_MakeSkyGrid")
+    .method("Cadacs_MakeSkyGridBitMatrix", &Adacs::Cadacs_MakeSkyGridBitMatrix, "entry point for adacs_MakeSkyGrid")
     ;
 }
 

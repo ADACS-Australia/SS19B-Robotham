@@ -4,7 +4,23 @@
 Rcpp::loadModule("adacs", TRUE)
 
 # Entry point to the C/C++ MakeSkyGrid method
-adacs_MakeSkyGrid=function(image=NULL, bobjects=NULL, bmask=NULL, box=c(100,100), grid=box, type='bicubic', skytype='median', skyRMStype='quanlo', sigmasel=1,
+adacs_MakeSkyGrid=function(image=NULL, objects=NULL, mask=NULL, box=c(100,100), grid=box, type='bicubic', skytype='median', skyRMStype='quanlo', sigmasel=1,
+                                    skypixmin=prod(box)/2, boxadd=box/2, boxiters=0, doclip=TRUE, cores=1,
+                                    scratch=NULL) {
+  temp_bi_sky = scratch[['scratchSKY']]
+  temp_bi_skyRMS = scratch[['scratchSKYRMS']]
+  adacs<-new(Adacs)
+  adacs$Cadacs_MakeSkyGrid(image, objects, mask, 
+                                    box[1], box[2],
+                                    grid[1], grid[2],
+                                    boxadd[1], boxadd[2],
+                                    enumForKeyword(type), skypixmin, boxiters,
+                                    doclip, enumForKeyword(skytype), enumForKeyword(skyRMStype), sigmasel,
+                                    temp_bi_sky, temp_bi_skyRMS, quantile)
+  
+  invisible(list(sky=temp_bi_sky, skyRMS=temp_bi_skyRMS))
+}
+adacs_MakeSkyGridBitMatrix=function(image=NULL, bobjects=NULL, bmask=NULL, box=c(100,100), grid=box, type='bicubic', skytype='median', skyRMStype='quanlo', sigmasel=1,
                            skypixmin=prod(box)/2, boxadd=box/2, boxiters=0, doclip=TRUE, cores=1,
                            scratch=NULL) {
   temp_bi_sky = scratch[['scratchSKY']]
@@ -18,7 +34,7 @@ adacs_MakeSkyGrid=function(image=NULL, bobjects=NULL, bmask=NULL, box=c(100,100)
   if (is.null(bmask)) {
     bmask = new(BitMatrix, dim(image)[1], dim(image)[2])
   }
-  adacs$Cadacs_MakeSkyGrid(image, bobjects, bmask, 
+  adacs$Cadacs_MakeSkyGridBitMatrix(image, bobjects, bmask, 
                            box[1], box[2],
                            grid[1], grid[2],
                            boxadd[1], boxadd[2],
